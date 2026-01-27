@@ -18,7 +18,7 @@ One-by-one roadmap to build the "Serenity" study collaboration site.
     - *Tech: HTML, CSS, JS, LocalStorage*
 
 ## Phase 3: The Study Room
-- [ ] **Task 3: Room UI Layout**
+- [x] **Task 3: Room UI Layout**
     - Create the main room dashboard.
     - Implement the "Desk" area where participant avatars appear when they join.
     - Design the 3 theme styles (switchable).

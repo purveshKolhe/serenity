@@ -6,62 +6,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Serenity Room</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        .room-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .loading {
-            font-size: 1.5rem;
-            margin-top: 2rem;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% {
-                opacity: 0.6;
-            }
-
-            50% {
-                opacity: 1;
-            }
-
-            100% {
-                opacity: 0.6;
-            }
-        }
-    </style>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 
-<body>
-    <div class="glass-panel room-container">
-        <h1>Loading Room... 🍃</h1>
-        <div id="room-info" class="loading">Connecting...</div>
+<body class="theme-cafe"> <!-- Default Theme -->
+
+    <div class="room-layout">
+
+        <!-- Header -->
+        <header class="room-header bouncy">
+            <div class="room-title">
+                <span id="room-name-display">Room Name</span> 🌿
+            </div>
+            <div class="header-controls">
+                <!-- Theme Switcher -->
+                <button class="control-btn" id="theme-btn" title="Switch Vibe">🎨</button>
+                <button class="control-btn" id="exit-btn" title="Leave">🚪</button>
+            </div>
+        </header>
+
+        <!-- Main Desk Area -->
+        <main class="desk-container">
+            <div class="desk-surface" id="desk">
+                <!-- Seats will be populated by JS -->
+                <!-- Example of structure (hidden) -->
+                <!-- 
+                <div class="seat">
+                    <img src="/avatars/sunshine.png" class="avatar-display floating">
+                    <div class="avatar-label">StudyBunny</div>
+                </div> 
+                -->
+            </div>
+        </main>
+
+        <!-- Bottom Controls -->
+        <footer class="room-controls bouncy">
+            <button class="control-btn wobbly" id="timer-btn" title="Pomodoro">🍅</button>
+            <button class="control-btn wobbly" id="tasks-btn" title="Tasks">📝</button>
+            <button class="control-btn wobbly" id="chat-btn" title="Chat">💬</button>
+            <button class="control-btn wobbly" id="god-btn" title="Ask God">🛐</button>
+        </footer>
+
     </div>
 
+    <!-- Overlays (Hidden by default) -->
+    <!-- We will implement the actual overlay content in later tasks -->
+
     <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
-        const userStr = localStorage.getItem('serenity_user');
-        const roomStr = new URLSearchParams(window.location.search).get('id');
-
-        const roomInfo = document.getElementById('room-info');
-
-        if (!userStr || !roomStr) {
-            window.location.href = '/'; // Go back if no data
-        } else {
-            const user = JSON.parse(userStr);
-            roomInfo.innerHTML = `
-                <p>Hello, <strong>${user.nickname}</strong>!</p>
-                <img src="/avatars/${user.avatar}" width="100" style="border-radius:50%; margin: 10px 0;">
-                <p>Welcome to room: <strong>${roomStr}</strong></p>
-                <p><em>(Real room UI coming in Task 3)</em></p>
-            `;
-            document.querySelector('h1').innerText = "You're in! 🎉";
-        }
-    </script>
+    <script src="room.js"></script>
 </body>
 
 </html>
