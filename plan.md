@@ -153,6 +153,7 @@ We're called Serenity.
 * **3 different room UI styles**
 * All chibi-themed
 * No background music
+* A desk at a corner showing the participants avatars studying.
 
 ## Notifications
 
@@ -215,3 +216,4 @@ We're called Serenity.
 # How:
 * Use links to share room, socket io. same for chat. 
 * Focus is cute UI. 
+* Everything stored in local storage such that refresh does not cause loss of data. It also shouldn't remove a participant from a room. 
