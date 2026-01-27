@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serenity Room</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .room-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .loading {
+            font-size: 1.5rem;
+            margin-top: 2rem;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.6;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.6;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="glass-panel room-container">
+        <h1>Loading Room... 🍃</h1>
+        <div id="room-info" class="loading">Connecting...</div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const userStr = localStorage.getItem('serenity_user');
+        const roomStr = new URLSearchParams(window.location.search).get('id');
+
+        const roomInfo = document.getElementById('room-info');
+
+        if (!userStr || !roomStr) {
+            window.location.href = '/'; // Go back if no data
+        } else {
+            const user = JSON.parse(userStr);
+            roomInfo.innerHTML = `
+                <p>Hello, <strong>${user.nickname}</strong>!</p>
+                <img src="/avatars/${user.avatar}" width="100" style="border-radius:50%; margin: 10px 0;">
+                <p>Welcome to room: <strong>${roomStr}</strong></p>
+                <p><em>(Real room UI coming in Task 3)</em></p>
+            `;
+            document.querySelector('h1').innerText = "You're in! 🎉";
+        }
+    </script>
+</body>
+
+</html>

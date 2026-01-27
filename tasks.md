@@ -10,7 +10,7 @@ One-by-one roadmap to build the "Serenity" study collaboration site.
     - *Tech: Node.js, Express, Socket.io*
 
 ## Phase 2: User Onboarding
-- [ ] **Task 2: Landing Page (Identity Selection)**
+- [x] **Task 2: Landing Page (Identity Selection)**
     - Create a cute landing page.
     - Implement Room ID entry/creation.
     - Build the Avatar & Nickname selector (15 chibis + Nickname field).

@@ -1,46 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Serenity | Loading...</title>
-    <style>
-        body {
-            background: #fdf6f6;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #d8a7b1;
-        }
-        .container {
-            text-align: center;
-        }
-        h1 {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-        img {
-            max-width: 200px;
-            border-radius: 50%;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        }
-    </style>
+    <title>Serenity</title>
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-    <div class="container">
-        <img src="/avatars/serenity_god.png" alt="Serenity God">
-        <h1>Serenity</h1>
-        <p>Connecting to vibes...</p>
+
+    <div class="glass-panel">
+        <h1>Welcome to Serenity 🌸</h1>
+        <p class="subtitle">Your cozy corner for productive vibes.</p>
+
+        <div id="step-identity">
+            <div class="input-group">
+                <label for="nickname">What should we call you?</label>
+                <input type="text" id="nickname" placeholder="e.g. StudyBunny, CodeWifi..." maxlength="15"
+                    autocomplete="off">
+            </div>
+
+            <div class="avatar-selection">
+                <label>Choose your vibe:</label>
+                <div class="avatar-grid" id="avatar-grid">
+                    <!-- Avatars injected by JS -->
+                </div>
+            </div>
+
+            <button id="next-btn" class="btn-primary" disabled>Continue ✨</button>
+        </div>
+
+        <div id="step-room" style="display: none;">
+            <div class="input-group">
+                <label for="room-id">Join a Room</label>
+                <input type="text" id="room-id" placeholder="Enter Room Name..." maxlength="20">
+            </div>
+
+            <button id="enter-btn" class="btn-primary" disabled>Enter Room 🚀</button>
+
+            <div class="divider">or</div>
+
+            <button id="create-btn" class="btn-primary" style="background: #9fa8da;">Create New Room 🌿</button>
+        </div>
+
     </div>
+
     <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
-        socket.on('connect', () => {
-            console.log('Connected to Serenity vibes! 🌸');
-        });
-    </script>
+    <script src="landing.js"></script>
 </body>
+
 </html>
