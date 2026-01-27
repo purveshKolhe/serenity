@@ -3,7 +3,7 @@
 One-by-one roadmap to build the "Serenity" study collaboration site.
 
 ## Phase 1: Foundation & Setup
-- [ ] **Task 1: Server Setup**
+- [x] **Task 1: Server Setup**
     - Initialize Node.js project.
     - Set up Express server with Socket.io.
     - Configure static file serving for `assets` and `avatars`.
