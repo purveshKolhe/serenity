@@ -50,8 +50,29 @@
 
     </div>
 
-    <!-- Overlays (Hidden by default) -->
-    <!-- We will implement the actual overlay content in later tasks -->
+    <!-- Timer Overlay -->
+    <div id="timer-overlay" class="overlay hidden">
+        <div class="glass-panel bouncy" style="max-width: 400px; position: relative;">
+            <button id="close-timer" class="close-btn">&times;</button>
+            <h2 id="timer-mode">Focus Mode 🍅</h2>
+            <div id="timer-display" class="timer-digits">25:00</div>
+
+            <div class="timer-controls">
+                <button id="start-timer" class="btn-primary">Start</button>
+                <button id="pause-timer" class="btn-primary" style="display:none; background: #ffcc80;">Pause</button>
+                <button id="reset-timer" class="control-btn" style="font-size: 1rem;">↺</button>
+            </div>
+
+            <div class="timer-modes">
+                <button class="mode-btn active" data-mode="focus">Focus</button>
+                <button class="mode-btn" data-mode="short-break">Short Break</button>
+                <button class="mode-btn" data-mode="long-break">Long Break</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio -->
+    <audio id="notif-sound" src="/assets/notif.mp3"></audio>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="room.js"></script>

@@ -32,15 +32,20 @@ exitBtn.addEventListener('click', () => {
     }
 });
 
+// Socket Connection & Real-time Events
+socket.emit('join-room', { roomId, user });
 
-// Mock Participants System (Frontend only for now, real sync in Task 4)
-// We'll put ourself in the desk 
-const participants = [
-    { name: user.nickname, avatar: user.avatar }
-];
+socket.on('update-participants', (serverParticipants) => {
+    renderDesk(serverParticipants);
+});
 
-function renderDesk() {
-    desk.innerHTML = ''; // Clear
+socket.on('room-full', () => {
+    alert('Room is full! (Max 4 participants) 😢');
+    window.location.href = '/';
+});
+
+function renderDesk(participants) {
+    desk.innerHTML = ''; // Clear previous state
 
     // We have 4 slots max
     for (let i = 0; i < 4; i++) {
@@ -54,32 +59,31 @@ function renderDesk() {
             const img = document.createElement('img');
             img.src = `/avatars/${p.avatar}`;
             img.className = 'avatar-display floating';
-            // Add a slight random delay to float animation so they don't sync perfectly
+            img.alt = p.nickname;
+
+            // Randomize float animation delay to look natural
             img.style.animationDelay = `-${Math.random() * 2}s`;
 
             const label = document.createElement('div');
             label.className = 'avatar-label';
-            label.innerText = p.name;
+            label.innerText = p.nickname;
+
+            // Highlight "You"
+            if (p.nickname === user.nickname) {
+                label.style.color = 'var(--primary-dark)';
+                label.innerText += ' (You)';
+            }
 
             seat.appendChild(img);
             seat.appendChild(label);
         } else {
-            // Empty Seat (maybe a ghost or "join" indication later)
-            // For now just empty
+            // Empty Seat
             seat.style.opacity = '0.3';
-            // seat.innerText = 'Empty'; // Optional debug
         }
 
         desk.appendChild(seat);
     }
 }
-
-// Initial Render
-renderDesk();
-
-// Socket Connection (Basic Join)
-// In Phase 3, we just layout. Phase 4 is real syncing.
-socket.emit('join-room', { roomId, user });
 
 // Placeholder listeners for buttons
 document.getElementById('timer-btn').addEventListener('click', () => alert('Pomodoro Timer coming soon! 🍅'));

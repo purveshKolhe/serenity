@@ -14,13 +14,151 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 app.use('/avatars', express.static(path.join(__dirname, 'avatars')));
 
+// In-memory room state
+// roomID -> { participants: [ {id, nickname, avatar} ], timer: { ... } }
+const rooms = {};
+
 // Socket.io logic
 io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
+    console.log('User connected:', socket.id);
 
-    socket.on('disconnect', () => {
-        console.log('User disconnected:', socket.id);
+    socket.on('join-room', ({ roomId, user }) => {
+        // Create room if it doesn't exist
+        if (!rooms[roomId]) {
+            rooms[roomId] = {
+                participants: [],
+                timer: {
+                    timeLeft: 25 * 60, // Default 25 mins
+                    mode: 'focus', // focus, short-break, long-break
+                    isRunning: false,
+                    intervalId: null
+                }
+            };
+        }
+
+        const room = rooms[roomId];
+
+        // Check if room is full (max 4)
+        if (room.participants.length >= 4) {
+            socket.emit('room-full');
+            return;
+        }
+
+        // Add user to room
+        const participant = {
+            id: socket.id,
+            nickname: user.nickname,
+            avatar: user.avatar
+        };
+        room.participants.push(participant);
+        socket.join(roomId);
+
+        // Tell everyone who is here (including the new joiner)
+        io.to(roomId).emit('update-participants', room.participants);
+        // Send current timer state immediately
+        const { intervalId, ...timerState } = room.timer; // Don't send the intervalId
+        socket.emit('timer-update', timerState);
+
+        console.log(`${user.nickname} joined room ${roomId}. Total: ${room.participants.length}`);
+
+        // --- TIMER HANDLERS (Only need one listener setup per socket, but scoped to room) ---
+
+        socket.on('start-timer', () => {
+            if (!room.timer.isRunning) {
+                room.timer.isRunning = true;
+
+                // Clear any existing interval just in case
+                if (room.timer.intervalId) clearInterval(room.timer.intervalId);
+
+                room.timer.intervalId = setInterval(() => {
+                    if (room.timer.timeLeft > 0) {
+                        room.timer.timeLeft--;
+                    } else {
+                        // Timer finished!
+                        clearInterval(room.timer.intervalId);
+                        room.timer.isRunning = false;
+                        io.to(roomId).emit('timer-finished', room.timer.mode);
+
+                        // Auto-switch modes (Focus -> Short Break, Break -> Focus)
+                        // Simplified flow for now
+                        if (room.timer.mode === 'focus') {
+                            room.timer.mode = 'short-break';
+                            room.timer.timeLeft = 5 * 60;
+                        } else {
+                            room.timer.mode = 'focus';
+                            room.timer.timeLeft = 25 * 60;
+                        }
+                    }
+
+                    const { intervalId, ...state } = room.timer;
+                    io.to(roomId).emit('timer-update', state);
+                }, 1000); // Tick every second
+
+                // Broadcast immediately
+                const { intervalId, ...state } = room.timer;
+                io.to(roomId).emit('timer-update', state);
+            }
+        });
+
+        socket.on('pause-timer', () => {
+            if (room.timer.isRunning) {
+                clearInterval(room.timer.intervalId);
+                room.timer.isRunning = false;
+                const { intervalId, ...state } = room.timer;
+                io.to(roomId).emit('timer-update', state);
+            }
+        });
+
+        socket.on('reset-timer', () => {
+            clearInterval(room.timer.intervalId);
+            room.timer.isRunning = false;
+            // Reset to start of current mode
+            if (room.timer.mode === 'focus') room.timer.timeLeft = 25 * 60;
+            else if (room.timer.mode === 'short-break') room.timer.timeLeft = 5 * 60;
+            else room.timer.timeLeft = 15 * 60;
+
+            const { intervalId, ...state } = room.timer;
+            io.to(roomId).emit('timer-update', state);
+        });
+
+        // Set mode manually
+        socket.on('set-timer-mode', (mode) => {
+            clearInterval(room.timer.intervalId);
+            room.timer.isRunning = false;
+            room.timer.mode = mode;
+
+            if (mode === 'focus') room.timer.timeLeft = 25 * 60;
+            else if (mode === 'short-break') room.timer.timeLeft = 5 * 60;
+            else if (mode === 'long-break') room.timer.timeLeft = 15 * 60;
+
+            const { intervalId, ...state } = room.timer;
+            io.to(roomId).emit('timer-update', state);
+        });
+
+
+        // Handle Disconnect
+        socket.on('disconnect', () => {
+            console.log('User disconnected:', socket.id);
+            // Remove user from room
+            const index = room.participants.findIndex(p => p.id === socket.id);
+            if (index !== -1) {
+                const leaver = room.participants[index];
+                room.participants.splice(index, 1);
+
+                // Broadcast update
+                io.to(roomId).emit('update-participants', room.participants);
+                console.log(`${leaver.nickname} left room ${roomId}.`);
+
+                // If room empty, clean up
+                if (room.participants.length === 0) {
+                    if (room.timer.intervalId) clearInterval(room.timer.intervalId);
+                    delete rooms[roomId];
+                    console.log(`Room ${roomId} deleted.`);
+                }
+            }
+        });
     });
+
 });
 
 server.listen(PORT, () => {

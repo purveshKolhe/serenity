@@ -24,7 +24,7 @@ One-by-one roadmap to build the "Serenity" study collaboration site.
     - Design the 3 theme styles (switchable).
     - *Tech: HTML, CSS (Grid/Flexbox)*
 
-- [ ] **Task 4: Real-time Presence**
+- [x] **Task 4: Real-time Presence**
     - Use Socket.io to broadcast when a user joins/leaves a room.
     - Update the desk visuals live for all members.
     - *Tech: Socket.io, JS*
