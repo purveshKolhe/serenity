@@ -31,7 +31,12 @@ io.on('connection', (socket) => {
                     timeLeft: 25 * 60, // Default 25 mins
                     mode: 'focus', // focus, short-break, long-break
                     isRunning: false,
-                    intervalId: null
+                    intervalId: null,
+                    durations: {
+                        focus: 25 * 60,
+                        'short-break': 5 * 60,
+                        'long-break': 15 * 60
+                    }
                 }
             };
         }
@@ -83,10 +88,10 @@ io.on('connection', (socket) => {
                         // Simplified flow for now
                         if (room.timer.mode === 'focus') {
                             room.timer.mode = 'short-break';
-                            room.timer.timeLeft = 5 * 60;
+                            room.timer.timeLeft = room.timer.durations['short-break'];
                         } else {
                             room.timer.mode = 'focus';
-                            room.timer.timeLeft = 25 * 60;
+                            room.timer.timeLeft = room.timer.durations['focus'];
                         }
                     }
 
@@ -112,10 +117,8 @@ io.on('connection', (socket) => {
         socket.on('reset-timer', () => {
             clearInterval(room.timer.intervalId);
             room.timer.isRunning = false;
-            // Reset to start of current mode
-            if (room.timer.mode === 'focus') room.timer.timeLeft = 25 * 60;
-            else if (room.timer.mode === 'short-break') room.timer.timeLeft = 5 * 60;
-            else room.timer.timeLeft = 15 * 60;
+            // Reset to start of current mode using custom durations
+            room.timer.timeLeft = room.timer.durations[room.timer.mode];
 
             const { intervalId, ...state } = room.timer;
             io.to(roomId).emit('timer-update', state);
@@ -127,12 +130,52 @@ io.on('connection', (socket) => {
             room.timer.isRunning = false;
             room.timer.mode = mode;
 
-            if (mode === 'focus') room.timer.timeLeft = 25 * 60;
-            else if (mode === 'short-break') room.timer.timeLeft = 5 * 60;
-            else if (mode === 'long-break') room.timer.timeLeft = 15 * 60;
+            room.timer.timeLeft = room.timer.durations[mode];
 
             const { intervalId, ...state } = room.timer;
             io.to(roomId).emit('timer-update', state);
+        });
+
+        // Set custom durations
+        socket.on('set-timer-durations', (durations) => {
+            // durations = { focus: mins, 'short-break': mins, 'long-break': mins }
+            clearInterval(room.timer.intervalId);
+            room.timer.isRunning = false;
+
+            room.timer.durations = {
+                focus: (durations.focus || 25) * 60,
+                'short-break': (durations['short-break'] || 5) * 60,
+                'long-break': (durations['long-break'] || 15) * 60
+            };
+
+            // Reset current timer to new duration
+            room.timer.timeLeft = room.timer.durations[room.timer.mode];
+
+            const { intervalId, ...state } = room.timer;
+            io.to(roomId).emit('timer-update', state);
+        });
+
+        // --- CHAT HANDLERS ---
+        socket.on('chat-message', (message) => {
+            const sender = room.participants.find(p => p.id === socket.id);
+            if (sender && message.trim()) {
+                io.to(roomId).emit('new-message', {
+                    nickname: sender.nickname,
+                    avatar: sender.avatar,
+                    text: message.trim(),
+                    timestamp: Date.now()
+                });
+            }
+        });
+
+        socket.on('send-reaction', (emoji) => {
+            const sender = room.participants.find(p => p.id === socket.id);
+            if (sender) {
+                io.to(roomId).emit('new-reaction', {
+                    nickname: sender.nickname,
+                    emoji: emoji
+                });
+            }
         });
 
 

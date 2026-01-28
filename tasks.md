@@ -30,13 +30,13 @@ One-by-one roadmap to build the "Serenity" study collaboration site.
     - *Tech: Socket.io, JS*
 
 ## Phase 4: Core Features
-- [ ] **Task 5: Synced Pomodoro Timer**
+- [x] **Task 5: Synced Pomodoro Timer**
     - Build a shared timer logic on the server.
     - Sync start/pause/reset actions across all clients.
     - Add cute audio feedback (`notif.mp3`) on session changes.
     - *Tech: Socket.io, JS, Web Audio API*
 
-- [ ] **Task 6: Room Chat & Reactions**
+- [x] **Task 6: Room Chat & Reactions**
     - Implement real-time text chat.
     - Show avatars next to nicknames in chat.
     - Add "Quick Reactions" (floating emojis/cute icons).

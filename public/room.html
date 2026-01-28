@@ -68,6 +68,53 @@
                 <button class="mode-btn" data-mode="short-break">Short Break</button>
                 <button class="mode-btn" data-mode="long-break">Long Break</button>
             </div>
+
+            <div class="timer-settings">
+                <button id="toggle-settings" class="mode-btn" style="margin-top: 1rem;">⚙️ Customize</button>
+                <div id="duration-settings" class="duration-inputs hidden">
+                    <div class="duration-row">
+                        <label>Focus:</label>
+                        <input type="number" id="focus-duration" min="1" max="120" value="25"> min
+                    </div>
+                    <div class="duration-row">
+                        <label>Short Break:</label>
+                        <input type="number" id="short-break-duration" min="1" max="60" value="5"> min
+                    </div>
+                    <div class="duration-row">
+                        <label>Long Break:</label>
+                        <input type="number" id="long-break-duration" min="1" max="60" value="15"> min
+                    </div>
+                    <button id="save-durations" class="btn-primary"
+                        style="margin-top: 1rem; padding: 0.5rem 1.5rem; font-size: 0.9rem;">Save ✨</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Overlay -->
+    <div id="chat-overlay" class="overlay hidden">
+        <div class="glass-panel chat-panel">
+            <button id="close-chat" class="close-btn">&times;</button>
+            <h2>Room Chat 💬</h2>
+
+            <div id="chat-messages" class="chat-messages">
+                <!-- Messages will be added here -->
+            </div>
+
+            <div class="chat-reactions">
+                <button class="reaction-btn" data-emoji="🔥">🔥</button>
+                <button class="reaction-btn" data-emoji="💖">💖</button>
+                <button class="reaction-btn" data-emoji="✨">✨</button>
+                <button class="reaction-btn" data-emoji="🎉">🎉</button>
+                <button class="reaction-btn" data-emoji="😭">😭</button>
+                <button class="reaction-btn" data-emoji="💪">💪</button>
+            </div>
+
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Say something cute..." maxlength="200"
+                    autocomplete="off">
+                <button id="send-chat" class="btn-primary" style="padding: 0.8rem 1.5rem;">Send</button>
+            </div>
         </div>
     </div>
 
