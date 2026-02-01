@@ -21,8 +21,9 @@
             </div>
             <div class="header-controls">
                 <!-- Theme Switcher -->
-                <button class="control-btn" id="theme-btn" title="Switch Vibe">🎨</button>
-                <button class="control-btn" id="exit-btn" title="Leave">🚪</button>
+                <button class="control-btn" id="theme-btn" title="Switch Vibe"><i
+                        class="fa-solid fa-palette"></i></button>
+                <button class="control-btn" id="exit-btn" title="Leave"><i class="fa-solid fa-door-open"></i></button>
             </div>
         </header>
 
@@ -42,10 +43,13 @@
 
         <!-- Bottom Controls -->
         <footer class="room-controls bouncy">
-            <button class="control-btn wobbly" id="timer-btn" title="Pomodoro">🍅</button>
-            <button class="control-btn wobbly" id="tasks-btn" title="Tasks">📝</button>
-            <button class="control-btn wobbly" id="chat-btn" title="Chat">💬</button>
-            <button class="control-btn wobbly" id="god-btn" title="Ask God">🛐</button>
+            <button class="control-btn wobbly" id="timer-btn" title="Pomodoro"><i
+                    class="fa-solid fa-clock"></i></button>
+            <button class="control-btn wobbly" id="tasks-btn" title="Tasks"><i
+                    class="fa-solid fa-list-check"></i></button>
+            <button class="control-btn wobbly" id="chat-btn" title="Chat"><i class="fa-solid fa-comments"></i></button>
+            <button class="control-btn wobbly" id="quiz-init-btn" title="Start Quiz"><i
+                    class="fa-solid fa-brain"></i></button>
         </footer>
 
     </div>
@@ -53,14 +57,16 @@
     <!-- Timer Overlay -->
     <div id="timer-overlay" class="overlay hidden">
         <div class="glass-panel bouncy" style="max-width: 400px; position: relative;">
-            <button id="close-timer" class="close-btn">&times;</button>
-            <h2 id="timer-mode">Focus Mode 🍅</h2>
+            <button id="close-timer" class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+            <h2 id="timer-mode">Focus Mode <i class="fa-regular fa-clock"></i></h2>
             <div id="timer-display" class="timer-digits">25:00</div>
 
             <div class="timer-controls">
-                <button id="start-timer" class="btn-primary">Start</button>
-                <button id="pause-timer" class="btn-primary" style="display:none; background: #ffcc80;">Pause</button>
-                <button id="reset-timer" class="control-btn" style="font-size: 1rem;">↺</button>
+                <button id="start-timer" class="btn-primary"><i class="fa-solid fa-play"></i> Start</button>
+                <button id="pause-timer" class="btn-primary" style="display:none; background: #ffcc80;"><i
+                        class="fa-solid fa-pause"></i> Pause</button>
+                <button id="reset-timer" class="control-btn" style="font-size: 1rem;"><i
+                        class="fa-solid fa-rotate-right"></i></button>
             </div>
 
             <div class="timer-modes">
@@ -70,7 +76,8 @@
             </div>
 
             <div class="timer-settings">
-                <button id="toggle-settings" class="mode-btn" style="margin-top: 1rem;">⚙️ Customize</button>
+                <button id="toggle-settings" class="mode-btn" style="margin-top: 1rem;"><i class="fa-solid fa-gear"></i>
+                    Customize</button>
                 <div id="duration-settings" class="duration-inputs hidden">
                     <div class="duration-row">
                         <label>Focus:</label>
@@ -94,8 +101,8 @@
     <!-- Chat Overlay -->
     <div id="chat-overlay" class="overlay hidden">
         <div class="glass-panel chat-panel">
-            <button id="close-chat" class="close-btn">&times;</button>
-            <h2>Room Chat 💬</h2>
+            <button id="close-chat" class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+            <h2>Room Chat <i class="fa-regular fa-comments"></i></h2>
 
             <div id="chat-messages" class="chat-messages">
                 <!-- Messages will be added here -->
@@ -121,8 +128,8 @@
     <!-- Tasks Overlay -->
     <div id="tasks-overlay" class="overlay hidden">
         <div class="glass-panel task-panel">
-            <button id="close-tasks" class="close-btn">&times;</button>
-            <h2>Room Tasks 📝</h2>
+            <button id="close-tasks" class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+            <h2>Room Tasks <i class="fa-solid fa-list-check"></i></h2>
             <p style="font-size: 0.9rem; margin-top: -10px; opacity: 0.8;">Goals for this session!</p>
 
             <ul id="task-list" class="task-list">
@@ -136,8 +143,72 @@
         </div>
     </div>
 
+    <!-- Quiz Setup Overlay (Replaces God Mode) -->
+    <div id="quiz-setup-overlay" class="overlay hidden">
+        <div class="glass-panel modal-panel bouncy" style="max-width: 400px;">
+            <button id="close-quiz-setup" class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+            <h2>Start a Quiz 🧠</h2>
+            <p style="text-align: center; opacity: 0.8; font-size: 0.9rem;">Challenge the room on any topic!</p>
+
+            <div style="margin-top: 20px;">
+                <input type="text" id="quiz-topic" placeholder="Values: Physics, Javascript, Cats..."
+                    style="width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--primary-light);">
+                <button id="start-quiz-btn" class="btn-primary" style="width: 100%; margin-top: 10px;">
+                    <i class="fa-solid fa-play"></i> Generate Quiz
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Quiz Overlay -->
+    <div id="quiz-overlay" class="overlay hidden">
+        <div class="glass-panel quiz-panel bouncy" id="quiz-active-view">
+            <div class="quiz-header">
+                <div class="quiz-badge"><i class="fa-solid fa-clipboard-question"></i> Quiz</div>
+                <div class="quiz-stats">
+                    <span id="quiz-counter">1 / 10</span>
+                    <span id="quiz-score"><i class="fa-solid fa-star"></i> 0</span>
+                </div>
+            </div>
+
+            <h2 id="quiz-question">Question goes here?</h2>
+
+            <div id="quiz-options" class="quiz-options">
+                <!-- Options injected -->
+            </div>
+
+            <div class="quiz-timer-bar">
+                <div id="quiz-progress"></div>
+            </div>
+            <p id="quiz-status"></p>
+        </div>
+
+        <div class="glass-panel quiz-panel bouncy hidden" id="quiz-results-view">
+            <h2>🏆 Quiz Complete! 🏆</h2>
+            <div id="quiz-leaderboard">
+                <!-- Leaderboard items -->
+            </div>
+            <button id="close-quiz-results" class="btn-primary" style="margin-top: 20px;">Close 🎉</button>
+        </div>
+    </div>
+
     <!-- Audio -->
     <audio id="notif-sound" src="/assets/notif.mp3"></audio>
+
+    <!-- Generic Custom Modal -->
+    <div id="custom-modal-overlay" class="overlay hidden" style="z-index: 2000;">
+        <div class="glass-panel modal-panel bouncy">
+            <h3 id="modal-title" style="margin-top:0;">Notice</h3>
+            <p id="modal-message" style="margin: 1rem 0; color: #555;">Something happened!</p>
+            <div class="modal-actions" style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button id="modal-cancel-btn" class="btn-secondary hidden">Cancel</button>
+                <button id="modal-confirm-btn" class="btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="room.js"></script>

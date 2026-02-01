@@ -2,6 +2,10 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+require('dotenv').config();
+const Groq = require('groq-sdk');
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const app = express();
 const server = http.createServer(app);
@@ -15,7 +19,6 @@ app.use('/assets', express.static(path.join(__dirname, 'assets')));
 app.use('/avatars', express.static(path.join(__dirname, 'avatars')));
 
 // In-memory room state
-// roomID -> { participants: [ {id, nickname, avatar} ], timer: { ... } }
 const rooms = {};
 
 // Socket.io logic
@@ -23,13 +26,12 @@ io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
     socket.on('join-room', ({ roomId, user }) => {
-        // Create room if it doesn't exist
         if (!rooms[roomId]) {
             rooms[roomId] = {
                 participants: [],
                 timer: {
-                    timeLeft: 25 * 60, // Default 25 mins
-                    mode: 'focus', // focus, short-break, long-break
+                    timeLeft: 25 * 60,
+                    mode: 'focus',
                     isRunning: false,
                     intervalId: null,
                     durations: {
@@ -37,59 +39,61 @@ io.on('connection', (socket) => {
                         'short-break': 5 * 60,
                         'long-break': 15 * 60
                     }
-                }
+                },
+                tasks: []
             };
         }
 
         const room = rooms[roomId];
 
-        // Check if room is full (max 4)
         if (room.participants.length >= 4) {
             socket.emit('room-full');
             return;
         }
 
-        // Add user to room
         const participant = {
             id: socket.id,
             nickname: user.nickname,
-            avatar: user.avatar
+            avatar: user.avatar,
+            xp: 0,
+            level: 1
         };
         room.participants.push(participant);
         socket.join(roomId);
 
-        // Tell everyone who is here (including the new joiner)
         io.to(roomId).emit('update-participants', room.participants);
-        // Send current timer state immediately
-        const { intervalId, ...timerState } = room.timer; // Don't send the intervalId
+        const { intervalId, ...timerState } = room.timer;
         socket.emit('timer-update', timerState);
-        // Send current tasks
-        if (room.tasks) {
-            socket.emit('update-tasks', room.tasks);
-        }
+        socket.emit('update-tasks', room.tasks);
 
         console.log(`${user.nickname} joined room ${roomId}. Total: ${room.participants.length}`);
 
-        // --- TIMER HANDLERS (Only need one listener setup per socket, but scoped to room) ---
-
+        // --- TIMER HANDLERS ---
         socket.on('start-timer', () => {
             if (!room.timer.isRunning) {
                 room.timer.isRunning = true;
-
-                // Clear any existing interval just in case
                 if (room.timer.intervalId) clearInterval(room.timer.intervalId);
 
                 room.timer.intervalId = setInterval(() => {
                     if (room.timer.timeLeft > 0) {
                         room.timer.timeLeft--;
                     } else {
-                        // Timer finished!
                         clearInterval(room.timer.intervalId);
                         room.timer.isRunning = false;
                         io.to(roomId).emit('timer-finished', room.timer.mode);
 
-                        // Auto-switch modes (Focus -> Short Break, Break -> Focus)
-                        // Simplified flow for now
+                        // Award XP
+                        const xpGain = room.timer.mode === 'focus' ? 50 : 10;
+                        const reason = room.timer.mode === 'focus' ? 'Focus Session Complete! 🔥' : 'Break Complete! 🍃';
+
+                        room.participants.forEach(p => {
+                            p.xp += xpGain;
+                            checkLevelUp(p, roomId, io);
+                        });
+
+                        io.to(roomId).emit('update-participants', room.participants);
+                        io.to(roomId).emit('xp-gained-all', { amount: xpGain, reason });
+
                         if (room.timer.mode === 'focus') {
                             room.timer.mode = 'short-break';
                             room.timer.timeLeft = room.timer.durations['short-break'];
@@ -98,12 +102,10 @@ io.on('connection', (socket) => {
                             room.timer.timeLeft = room.timer.durations['focus'];
                         }
                     }
-
                     const { intervalId, ...state } = room.timer;
                     io.to(roomId).emit('timer-update', state);
-                }, 1000); // Tick every second
+                }, 1000);
 
-                // Broadcast immediately
                 const { intervalId, ...state } = room.timer;
                 io.to(roomId).emit('timer-update', state);
             }
@@ -121,73 +123,37 @@ io.on('connection', (socket) => {
         socket.on('reset-timer', () => {
             clearInterval(room.timer.intervalId);
             room.timer.isRunning = false;
-            // Reset to start of current mode using custom durations
             room.timer.timeLeft = room.timer.durations[room.timer.mode];
-
             const { intervalId, ...state } = room.timer;
             io.to(roomId).emit('timer-update', state);
         });
 
-        // Set mode manually
         socket.on('set-timer-mode', (mode) => {
             clearInterval(room.timer.intervalId);
             room.timer.isRunning = false;
             room.timer.mode = mode;
-
             room.timer.timeLeft = room.timer.durations[mode];
-
             const { intervalId, ...state } = room.timer;
             io.to(roomId).emit('timer-update', state);
         });
 
-        // Set custom durations
         socket.on('set-timer-durations', (durations) => {
-            // durations = { focus: mins, 'short-break': mins, 'long-break': mins }
             clearInterval(room.timer.intervalId);
             room.timer.isRunning = false;
-
             room.timer.durations = {
                 focus: (durations.focus || 25) * 60,
                 'short-break': (durations['short-break'] || 5) * 60,
                 'long-break': (durations['long-break'] || 15) * 60
             };
-
-            // Reset current timer to new duration
             room.timer.timeLeft = room.timer.durations[room.timer.mode];
-
             const { intervalId, ...state } = room.timer;
             io.to(roomId).emit('timer-update', state);
         });
 
-        // --- CHAT HANDLERS ---
-        socket.on('chat-message', (message) => {
-            const sender = room.participants.find(p => p.id === socket.id);
-            if (sender && message.trim()) {
-                io.to(roomId).emit('new-message', {
-                    nickname: sender.nickname,
-                    avatar: sender.avatar,
-                    text: message.trim(),
-                    timestamp: Date.now()
-                });
-            }
-        });
-
-        socket.on('send-reaction', (emoji) => {
-            const sender = room.participants.find(p => p.id === socket.id);
-            if (sender) {
-                io.to(roomId).emit('new-reaction', {
-                    nickname: sender.nickname,
-                    emoji: emoji
-                });
-            }
-        });
-
         // --- TASK HANDLERS ---
         socket.on('add-task', (taskText) => {
-            if (!room.tasks) room.tasks = [];
-
             const newTask = {
-                id: Date.now().toString(), // Simple unique ID
+                id: Date.now().toString(),
                 text: taskText,
                 completed: false,
                 author: room.participants.find(p => p.id === socket.id)?.nickname || 'Someone'
@@ -197,49 +163,196 @@ io.on('connection', (socket) => {
         });
 
         socket.on('toggle-task', (taskId) => {
-            if (!room.tasks) return;
             const task = room.tasks.find(t => t.id === taskId);
             if (task) {
                 task.completed = !task.completed;
                 io.to(roomId).emit('update-tasks', room.tasks);
 
                 if (task.completed) {
-                    io.to(roomId).emit('task-completed-celebration', task.text);
+                    const p = room.participants.find(p => p.id === socket.id);
+                    if (p) {
+                        const earned = 25;
+                        p.xp += earned;
+                        checkLevelUp(p, roomId, io);
+                        socket.emit('xp-gained', { amount: earned, reason: 'Task Completed! ✅' });
+                        io.to(roomId).emit('update-participants', room.participants);
+                        io.to(roomId).emit('task-completed-celebration', task.text);
+                    }
                 }
             }
         });
 
         socket.on('delete-task', (taskId) => {
-            if (!room.tasks) return;
             room.tasks = room.tasks.filter(t => t.id !== taskId);
             io.to(roomId).emit('update-tasks', room.tasks);
         });
 
+        // --- CHIBI GOD & CHAT ---
+        socket.on('chat-message', (text) => {
+            const p = room.participants.find(p => p.id === socket.id);
+            if (p) {
+                io.to(roomId).emit('new-message', {
+                    nickname: p.nickname,
+                    avatar: p.avatar,
+                    text: text,
+                    timestamp: Date.now()
+                });
+            }
+        });
+
+        socket.on('send-reaction', (emoji) => {
+            io.to(roomId).emit('new-reaction', { emoji });
+        });
+
+        // --- QUIZ HANDLERS (V2 Robust) ---
+        socket.on('start-quiz-v2', async (topic) => {
+            if (!process.env.GROQ_API_KEY) return;
+
+            room.quizSession = {
+                topic,
+                questions: [],
+                currentQuestionIndex: 0,
+                scores: {},
+                timers: []
+            };
+            room.participants.forEach(p => room.quizSession.scores[p.id] = 0);
+
+            io.to(roomId).emit('quiz-state-loading');
+
+            try {
+                const prompt = `Generate 10 multiple-choice questions about "${topic}". 
+                Return a JSON Object with a "questions" key containing an array of objects.
+                Each object must have:
+                - "question": string
+                - "options": array of 4 strings
+                - "correctIndex": integer (0-3)
+                
+                Ensure valid JSON.`;
+
+                const completion = await groq.chat.completions.create({
+                    messages: [{ role: "user", content: prompt }],
+                    model: "openai/gpt-oss-120b",
+                    response_format: { type: "json_object" }
+                });
+
+                const data = JSON.parse(completion.choices[0]?.message?.content);
+                if (data.questions && Array.isArray(data.questions)) {
+                    room.quizSession.questions = data.questions;
+                    runQuizStepV2(roomId, room);
+                }
+            } catch (error) {
+                console.error(error);
+                io.to(roomId).emit('quiz-state-error');
+            }
+        });
+
+        socket.on('submit-answer-v2', ({ qIndex, aIndex }) => {
+            const session = room.quizSession;
+            if (!session || session.currentQuestionIndex !== qIndex || session.isRevealed) return;
+
+            if (!session.answeredUsers) session.answeredUsers = new Set();
+            if (session.answeredUsers.has(socket.id)) return;
+
+            session.answeredUsers.add(socket.id);
+            const isCorrect = session.questions[qIndex].correctIndex === aIndex;
+
+            if (isCorrect) {
+                const points = 100;
+                session.scores[socket.id] = (session.scores[socket.id] || 0) + points;
+
+                const p = room.participants.find(p => p.id === socket.id);
+                if (p) {
+                    p.xp = (p.xp || 0) + points;
+                    checkLevelUp(p, roomId, io);
+                    io.to(roomId).emit('update-participants', room.participants);
+                }
+                socket.emit('quiz-feedback-v2', { correct: true, newScore: session.scores[socket.id] });
+            } else {
+                socket.emit('quiz-feedback-v2', { correct: false });
+            }
+        });
+
+        function runQuizStepV2(roomId, room) {
+            const session = room.quizSession;
+            if (!session) return;
+
+            if (session.currentQuestionIndex >= session.questions.length) {
+                const leaderboard = room.participants
+                    .map(p => ({
+                        nickname: p.nickname,
+                        avatar: p.avatar,
+                        score: session.scores[p.id] || 0
+                    }))
+                    .sort((a, b) => b.score - a.score);
+                io.to(roomId).emit('quiz-state-gameover', leaderboard);
+                room.quizSession = null;
+                return;
+            }
+
+            session.answeredUsers = new Set();
+            session.isRevealed = false;
+            const q = session.questions[session.currentQuestionIndex];
+
+            io.to(roomId).emit('quiz-state-question', {
+                current: session.currentQuestionIndex + 1,
+                total: session.questions.length,
+                question: q.question,
+                options: q.options,
+                timeLeft: 15
+            });
+
+            const revealTimer = setTimeout(() => {
+                session.isRevealed = true;
+                io.to(roomId).emit('quiz-state-reveal', { correctIndex: q.correctIndex });
+
+                const nextTimer = setTimeout(() => {
+                    session.currentQuestionIndex++;
+                    runQuizStepV2(roomId, room);
+                }, 5000);
+                session.timers.push(nextTimer);
+            }, 15000);
+            session.timers.push(revealTimer);
+        }
 
         // Handle Disconnect
         socket.on('disconnect', () => {
             console.log('User disconnected:', socket.id);
-            // Remove user from room
             const index = room.participants.findIndex(p => p.id === socket.id);
             if (index !== -1) {
                 const leaver = room.participants[index];
                 room.participants.splice(index, 1);
-
-                // Broadcast update
                 io.to(roomId).emit('update-participants', room.participants);
                 console.log(`${leaver.nickname} left room ${roomId}.`);
-
-                // If room empty, clean up
                 if (room.participants.length === 0) {
                     if (room.timer.intervalId) clearInterval(room.timer.intervalId);
+                    if (room.quizSession && room.quizSession.timers) {
+                        room.quizSession.timers.forEach(t => clearTimeout(t));
+                    }
                     delete rooms[roomId];
                     console.log(`Room ${roomId} deleted.`);
                 }
             }
         });
     });
-
 });
+
+// --- HELPERS ---
+function checkLevelUp(participant, roomId, io) {
+    if (!participant) return;
+    participant.level = participant.level || 1;
+    participant.xp = participant.xp || 0;
+    const previousLevel = participant.level;
+    const newLevel = 1 + Math.floor(participant.xp / 500);
+
+    if (newLevel > previousLevel) {
+        participant.level = newLevel;
+        io.to(roomId).emit('player-leveled-up', {
+            id: participant.id,
+            nickname: participant.nickname,
+            newLevel: newLevel
+        });
+    }
+}
 
 server.listen(PORT, () => {
     console.log(`🌸 Serenity server is running on http://localhost:${PORT}`);

@@ -49,13 +49,13 @@ One-by-one roadmap to build the "Serenity" study collaboration site.
     - *Tech: Socket.io, JS*
 
 ## Phase 5: Advanced Features
-- [ ] **Task 8: Chibi God & AI Quiz Mode**
+- [x] **Task 8: Chibi God & AI Quiz Mode**
     - Integrate Groq API for AI content.
     - Implement "Ask Chibi God" UI.
     - Logic for generating and displaying quizzes to all members simultaneously.
     - *Tech: Groq API, Node.js*
 
-- [ ] **Task 9: Rewards & Cosmetics**
+- [x] **Task 9: Rewards & Cosmetics**
     - Implement simple "Reward Points" for session time and task completion.
     - Add cosmetic unlocks (e.g., special glows for avatars or room decorations).
     - *Tech: JS, CSS*

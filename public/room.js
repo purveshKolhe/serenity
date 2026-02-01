@@ -38,9 +38,9 @@ themeBtn.addEventListener('click', () => {
 });
 
 exitBtn.addEventListener('click', () => {
-    if (confirm('Are you sure you want to leave the vibes? 🥺')) {
+    showConfirm('Leaving?', 'Are you sure you want to leave the vibes? 🥺', () => {
         window.location.href = '/';
-    }
+    });
 });
 
 // Socket Connection & Real-time Events
@@ -51,8 +51,9 @@ socket.on('update-participants', (serverParticipants) => {
 });
 
 socket.on('room-full', () => {
-    alert('Room is full! (Max 4 participants) 😢');
-    window.location.href = '/';
+    showAlert('Room Full', 'Room is full! (Max 4 participants) 😢', () => {
+        window.location.href = '/';
+    });
 });
 
 // --- Timer Logic ---
@@ -68,7 +69,9 @@ socket.on('timer-finished', (mode) => {
     const message = mode === 'focus'
         ? "Focus time done! Time for a break 🍵"
         : "Break's over! Back to the grind 💪";
-    alert(message);
+
+    // Use toast + sound, or Modal? Modal is better for timer end.
+    showAlert('Timer Finished! ⏰', message);
 });
 
 function updateTimerUI(state) {
@@ -169,6 +172,11 @@ function renderDesk(participants) {
             label.className = 'avatar-label';
             label.innerText = p.nickname;
 
+            // Level Badge
+            const levelBadge = document.createElement('div');
+            levelBadge.className = 'avatar-level-badge';
+            levelBadge.innerText = `Lvl ${p.level || 1}`;
+
             // Highlight "You"
             if (p.nickname === user.nickname) {
                 label.style.color = 'var(--primary-dark)';
@@ -177,6 +185,7 @@ function renderDesk(participants) {
 
             seat.appendChild(img);
             seat.appendChild(label);
+            seat.appendChild(levelBadge);
         } else {
             // Empty Seat
             seat.style.opacity = '0.3';
@@ -187,7 +196,148 @@ function renderDesk(participants) {
 }
 
 // Placeholder listeners for other buttons
-document.getElementById('god-btn').addEventListener('click', () => alert('The Chibi God is sleeping... 💤 (Coming soon)'));
+// --- QUIZ SETUP ---
+const quizSetupOverlay = document.getElementById('quiz-setup-overlay');
+const closeQuizSetupBtn = document.getElementById('close-quiz-setup');
+const quizTopic = document.getElementById('quiz-topic');
+const startQuizBtn = document.getElementById('start-quiz-btn');
+
+const quizOverlay = document.getElementById('quiz-overlay');
+const quizQuestion = document.getElementById('quiz-question');
+const quizOptions = document.getElementById('quiz-options');
+const quizProgress = document.getElementById('quiz-progress');
+
+document.getElementById('quiz-init-btn').addEventListener('click', () => {
+    quizSetupOverlay.classList.remove('hidden');
+    quizTopic.focus();
+});
+
+closeQuizSetupBtn.addEventListener('click', () => {
+    quizSetupOverlay.classList.add('hidden');
+});
+
+// --- QUIZ LOGIC (Multi-Round V2) ---
+const quizActiveView = document.getElementById('quiz-active-view');
+const quizResultsView = document.getElementById('quiz-results-view');
+const quizCounter = document.getElementById('quiz-counter');
+const quizScore = document.getElementById('quiz-score');
+const quizStatus = document.getElementById('quiz-status');
+const closeQuizResultsBtn = document.getElementById('close-quiz-results');
+
+startQuizBtn.addEventListener('click', () => {
+    const topic = quizTopic.value.trim();
+    if (topic) {
+        socket.emit('start-quiz-v2', topic);
+        quizTopic.value = '';
+        quizSetupOverlay.classList.add('hidden');
+    }
+});
+
+closeQuizResultsBtn.addEventListener('click', () => {
+    quizOverlay.classList.add('hidden');
+    quizResultsView.classList.add('hidden');
+    quizActiveView.classList.remove('hidden');
+});
+
+socket.on('quiz-state-loading', () => {
+    showToast("Generating a quiz for you... please wait! 🎲", 4000);
+});
+
+socket.on('quiz-state-question', (data) => {
+    // Show Overlay
+    quizOverlay.classList.remove('hidden');
+    quizResultsView.classList.add('hidden');
+    quizActiveView.classList.remove('hidden');
+
+    // Update UI
+    quizCounter.innerText = `Q ${data.current} / ${data.total}`;
+    quizScore.innerText = `Score: 0`;
+    quizQuestion.innerText = data.question;
+    quizOptions.innerHTML = '';
+    quizStatus.innerText = `Time to answer! (${data.timeLeft}s) ⏳`;
+
+    // Reset timer animation
+    quizProgress.style.animation = 'none';
+    quizProgress.offsetHeight;
+    quizProgress.style.animation = `quizTimer ${data.timeLeft}s linear forwards`;
+
+    // Render Options
+    data.options.forEach((opt, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'quiz-option-btn';
+        btn.innerText = opt;
+        btn.onclick = () => {
+            // Deselect others
+            document.querySelectorAll('.quiz-option-btn').forEach(b => {
+                b.classList.remove('selected', 'correct', 'wrong');
+            });
+            btn.classList.add('selected');
+            socket.emit('submit-answer-v2', { qIndex: data.current - 1, aIndex: index });
+            quizStatus.innerText = "Answer submitted! Waiting... 🤞";
+        };
+        quizOptions.appendChild(btn);
+    });
+});
+
+socket.on('quiz-feedback-v2', (data) => {
+    const selected = document.querySelector('.quiz-option-btn.selected');
+    if (selected) {
+        if (data.correct) {
+            selected.classList.add('correct');
+            if (data.newScore !== undefined) quizScore.innerText = `Score: ${data.newScore}`;
+            quizStatus.innerText = "Correct! 🎉";
+            notifSound.play().catch(() => { });
+            spawnConfetti();
+        } else {
+            selected.classList.add('wrong');
+            quizStatus.innerText = "Wrong! 😢";
+        }
+    }
+});
+
+socket.on('quiz-state-reveal', (data) => {
+    const buttons = document.querySelectorAll('.quiz-option-btn');
+    if (buttons[data.correctIndex]) {
+        buttons[data.correctIndex].classList.add('correct'); // Ensure green
+    }
+    quizStatus.innerText = "Next question coming soon... ➡️";
+});
+
+socket.on('quiz-state-gameover', (leaderboard) => {
+    quizActiveView.classList.add('hidden');
+    quizResultsView.classList.remove('hidden');
+
+    const container = document.getElementById('quiz-leaderboard');
+    container.innerHTML = '';
+
+    leaderboard.forEach((p, i) => {
+        const div = document.createElement('div');
+        div.className = 'leaderboard-item';
+        div.innerHTML = `
+            <span>#${i + 1}</span>
+            <img src="/avatars/${p.avatar}" alt="${p.nickname}">
+            <span>${p.nickname}</span>
+            <span class="leaderboard-score">${p.score} pts</span>
+        `;
+        container.appendChild(div);
+    });
+
+    // Big Confetti Loop
+    spawnConfetti(50);
+});
+
+function spawnConfetti(count = 20) {
+    for (let i = 0; i < count; i++) {
+        const conf = document.createElement('div');
+        conf.className = 'confetti';
+        conf.style.left = Math.random() * 100 + 'vw';
+        conf.style.top = '-10px';
+        conf.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 70%)`;
+        conf.style.animationDuration = (Math.random() * 2 + 1) + 's';
+        document.body.appendChild(conf);
+        setTimeout(() => conf.remove(), 3000);
+    }
+}
 
 // --- TASKS FUNCTIONALITY ---
 const tasksOverlay = document.getElementById('tasks-overlay');
@@ -241,9 +391,9 @@ socket.on('update-tasks', (tasks) => {
 
         // Delete listener
         li.querySelector('.delete-task-btn').addEventListener('click', () => {
-            if (confirm('Delete this task?')) {
+            showConfirm('Delete Task', 'Remove this task?', () => {
                 socket.emit('delete-task', task.id);
-            }
+            });
         });
 
         taskList.appendChild(li);
@@ -353,9 +503,76 @@ socket.on('new-reaction', (data) => {
     setTimeout(() => emoji.remove(), 2000);
 });
 
+// --- XP & LEVELING EVENTS ---
+socket.on('xp-gained', (data) => {
+    showToast(`+${data.amount} XP: ${data.reason} ✨`);
+});
+
+socket.on('xp-gained-all', (data) => {
+    showToast(`Everyone gained +${data.amount} XP! ${data.reason} 🌟`);
+});
+
+socket.on('player-leveled-up', (data) => {
+    // If it's me
+    if (data.id === socket.id) {
+        showAlert('Level Up! 🆙', `Congratulations! You reached Level ${data.newLevel}! 🎉`);
+        spawnConfetti(50);
+        notifSound.play().catch(() => { });
+    } else {
+        showToast(`${data.nickname} leveled up to Level ${data.newLevel}! 🔥`);
+    }
+});
+
 // Helper to escape HTML
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// --- NOTIFICATION SYSTEM (Modals/Toasts) ---
+const modalOverlay = document.getElementById('custom-modal-overlay');
+const modalTitle = document.getElementById('modal-title');
+const modalMessage = document.getElementById('modal-message');
+const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+const modalCancelBtn = document.getElementById('modal-cancel-btn');
+const toastContainer = document.getElementById('toast-container');
+
+function showToast(message, duration = 3000) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = message;
+    toastContainer.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-20px)';
+        toast.style.transition = 'all 0.3s';
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+}
+
+function showAlert(title, message, onOk = null) {
+    modalTitle.innerText = title;
+    modalMessage.innerText = message;
+    modalConfirmBtn.onclick = () => {
+        modalOverlay.classList.add('hidden');
+        if (onOk) onOk();
+    };
+    modalCancelBtn.classList.add('hidden');
+    modalOverlay.classList.remove('hidden');
+}
+
+function showConfirm(title, message, onConfirm) {
+    modalTitle.innerText = title;
+    modalMessage.innerText = message;
+
+    modalConfirmBtn.onclick = () => {
+        modalOverlay.classList.add('hidden');
+        if (onConfirm) onConfirm();
+    };
+
+    modalCancelBtn.onclick = () => modalOverlay.classList.add('hidden');
+    modalCancelBtn.classList.remove('hidden');
+    modalOverlay.classList.remove('hidden');
 }
