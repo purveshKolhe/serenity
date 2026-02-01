@@ -17,6 +17,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 app.use('/avatars', express.static(path.join(__dirname, 'avatars')));
+app.use('/bgs', express.static(path.join(__dirname, 'bgs')));
 
 // In-memory room state
 const rooms = {};

@@ -58,25 +58,22 @@ function getSeedFromString(str) {
 }
 
 function setDynamicBackground(roomName) {
-    const cachedBg = localStorage.getItem(`serenity_bg_${roomName}`);
-    if (cachedBg) {
-        roomLayout.style.backgroundImage = `url('${cachedBg}')`;
-        // return; // Uncomment to cache strictly, but for dev let's allow updates if we change logic
-    }
+    // Preset Backgrounds
+    const backgrounds = [
+        'forest.png',
+        'hogwarts.png',
+        'library.png',
+        'stars.png',
+        'tech.png',
+        'valley.png'
+    ];
 
-    // Clean room name (e.g. CozySpace38 -> CozySpace)
-    let theme = roomName.replace(/[0-9]/g, '');
-    if (theme.length < 3) theme = "Cozy Study Room"; // Fallback for short/empty names
-
-    // Prompt engineered to act as a "Environment Generator"
-    // We explicitly say "Wide angle view of a [Theme]"
-    const prompt = encodeURIComponent(`wide angle view of a cute cozy chibi anime study room, theme is ${theme}, pastel colors, detailed background, soft lighting, interior design, 4k, digital art, no characters, no people, empty desk in center`);
-
-    // Stable Seed derived from Room Name -> Same room always gets same BG
+    // Stable Seed derived from Room Name
     const seed = getSeedFromString(roomName);
 
-    // Using Flux model via Pollinations
-    const bgUrl = `https://image.pollinations.ai/prompt/${prompt}?model=flux&width=1920&height=1080&nologo=true&seed=${seed}`;
+    // Pick background deterministically
+    const index = seed % backgrounds.length;
+    const bgUrl = `/bgs/${backgrounds[index]}`;
 
     // Apply
     const img = new Image();
