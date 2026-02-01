@@ -44,7 +44,55 @@ exitBtn.addEventListener('click', () => {
 });
 
 // Socket Connection & Real-time Events
-socket.emit('join-room', { roomId, user });
+const roomLayout = document.querySelector('.room-layout');
+
+// --- DYNAMIC BACKGROUND SYSTEM (Pollinations.ai Flux) ---
+function getSeedFromString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
+}
+
+function setDynamicBackground(roomName) {
+    const cachedBg = localStorage.getItem(`serenity_bg_${roomName}`);
+    if (cachedBg) {
+        roomLayout.style.backgroundImage = `url('${cachedBg}')`;
+        // return; // Uncomment to cache strictly, but for dev let's allow updates if we change logic
+    }
+
+    // Clean room name (e.g. CozySpace38 -> CozySpace)
+    let theme = roomName.replace(/[0-9]/g, '');
+    if (theme.length < 3) theme = "Cozy Study Room"; // Fallback for short/empty names
+
+    // Prompt engineered to act as a "Environment Generator"
+    // We explicitly say "Wide angle view of a [Theme]"
+    const prompt = encodeURIComponent(`wide angle view of a cute cozy chibi anime study room, theme is ${theme}, pastel colors, detailed background, soft lighting, interior design, 4k, digital art, no characters, no people, empty desk in center`);
+
+    // Stable Seed derived from Room Name -> Same room always gets same BG
+    const seed = getSeedFromString(roomName);
+
+    // Using Flux model via Pollinations
+    const bgUrl = `https://image.pollinations.ai/prompt/${prompt}?model=flux&width=1920&height=1080&nologo=true&seed=${seed}`;
+
+    // Apply
+    const img = new Image();
+    img.src = bgUrl;
+    img.onload = () => {
+        roomLayout.style.backgroundImage = `url('${bgUrl}')`;
+        localStorage.setItem(`serenity_bg_${roomName}`, bgUrl);
+    };
+}
+
+socket.on('connect', () => {
+    if (user.nickname && roomId) {
+        socket.emit('join-room', { roomId, user });
+        setDynamicBackground(roomId);
+    }
+});
 
 socket.on('update-participants', (serverParticipants) => {
     renderDesk(serverParticipants);
@@ -162,11 +210,10 @@ function renderDesk(participants) {
 
             const img = document.createElement('img');
             img.src = `/avatars/${p.avatar}`;
-            img.className = 'avatar-display floating';
+            img.className = 'avatar-display'; // Removed 'floating' class
             img.alt = p.nickname;
 
-            // Randomize float animation delay to look natural
-            img.style.animationDelay = `-${Math.random() * 2}s`;
+            // Removed random animation delay for solid sitting look
 
             const label = document.createElement('div');
             label.className = 'avatar-label';
@@ -176,6 +223,9 @@ function renderDesk(participants) {
             const levelBadge = document.createElement('div');
             levelBadge.className = 'avatar-level-badge';
             levelBadge.innerText = `Lvl ${p.level || 1}`;
+
+            // Handle Z-Index for "Sitting" look via data-index
+            seat.setAttribute('data-index', i);
 
             // Highlight "You"
             if (p.nickname === user.nickname) {
@@ -188,6 +238,7 @@ function renderDesk(participants) {
             seat.appendChild(levelBadge);
         } else {
             // Empty Seat
+            seat.setAttribute('data-index', i);
             seat.style.opacity = '0.3';
         }
 

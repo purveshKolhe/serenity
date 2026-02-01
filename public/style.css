@@ -127,84 +127,167 @@ h3,
     /* Center in body flex */
 }
 
-/* --- ROOM LAYOUT (Fixed) --- */
-
+/* --- ROOM LAYOUT --- */
 .room-layout {
+    height: 100vh;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    transition: background 1s ease-in-out;
 }
 
+.room-layout::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.1);
+    /* Subtle lightning */
+    backdrop-filter: blur(2px);
+    z-index: 0;
+}
+
+/* Header as a Centered Pill */
 .room-header {
-    flex: 0 0 80px;
-    /* Fixed height */
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
+    min-width: 400px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(15px);
+    padding: 10px 30px;
+    border-radius: 50px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 2rem;
-    z-index: 10;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 2px solid white;
+    z-index: 1000;
 }
 
 .room-title {
-    background: rgba(255, 255, 255, 0.9);
-    padding: 0.8rem 1.5rem;
-    border-radius: 20px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     color: var(--primary-dark);
+    background: none;
+    box-shadow: none;
+    padding: 0;
 }
 
 .header-controls {
     display: flex;
-    gap: 10px;
+    gap: 15px;
 }
 
-/* Main Desk Area - Centered and Stable */
+/* Desk Area */
 .desk-container {
     flex: 1;
     display: flex;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
     position: relative;
-    padding: 2rem;
+    z-index: 1;
+    perspective: 1000px;
+    padding: 0;
+    /* Removing padding to allow precise positioning */
 }
 
 .desk-surface {
-    width: 600px;
-    height: 400px;
-    background: rgba(255, 255, 255, 0.5);
-    /* Glass Table */
-    border-radius: 60px;
-    /* Soft rounded rectangle */
-    border: 6px solid rgba(255, 255, 255, 0.8);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-    gap: 20px;
-    padding: 40px;
+    width: 800px;
+    height: 500px;
+    background-image: url('/assets/desk.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center bottom;
+    background-color: transparent;
+    /* Remove old glass bg */
+    border: none;
+    /* Remove old border */
+    box-shadow: none;
+    /* Remove old shadow */
+    display: block;
+    /* Remove grid */
     position: relative;
 }
 
-/* Seats */
 .seat {
+    position: absolute;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    position: relative;
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Position seats relative to the desk.png chairs */
+.seat[data-index="0"] {
+    bottom: 80px;
+    left: 50px;
+}
+
+/* Far Left Chair */
+.seat[data-index="1"] {
+    bottom: 180px;
+    left: 280px;
+    z-index: -1;
+}
+
+/* Back Left */
+.seat[data-index="2"] {
+    bottom: 180px;
+    right: 280px;
+    z-index: -1;
+}
+
+/* Back Right */
+.seat[data-index="3"] {
+    bottom: 80px;
+    right: 50px;
+}
+
+/* Far Right Chair */
+
+
+/* Sitting Logic: Back seats look slightly cut off to simulate sitting behind table */
+.seat[data-index="1"] .avatar-display,
+.seat[data-index="2"] .avatar-display {
+    mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
 }
 
 .avatar-display {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    border: 4px solid white;
-    background: #fff;
-    /* Fallback */
-    object-fit: cover;
-    margin-bottom: 10px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    width: 140px;
+    height: 140px;
+    object-fit: contain;
+    margin-bottom: -10px;
+    /* Pull closer to chair */
+    filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.2));
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    /* No animation for planted look */
+}
+
+.seat[data-index="1"] .avatar-display,
+.seat[data-index="3"] .avatar-display {
+    animation-delay: 1s;
+}
+
+/* Idle Animations */
+@keyframes avatar-idle {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(0);
+    }
+
+    50% {
+        transform: translateY(-10px) rotate(1deg);
+    }
 }
 
 .avatar-display.floating {
@@ -222,13 +305,21 @@ h3,
 }
 
 /* Bottom Controls */
+/* Bottom Controls */
 .room-controls {
-    flex: 0 0 100px;
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(15px);
+    padding: 12px 24px;
+    border-radius: 40px;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 2rem;
-    padding-bottom: 1rem;
+    gap: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    border: 2px solid white;
+    z-index: 1000;
 }
 
 .control-btn {
