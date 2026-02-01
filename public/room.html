@@ -118,6 +118,24 @@
         </div>
     </div>
 
+    <!-- Tasks Overlay -->
+    <div id="tasks-overlay" class="overlay hidden">
+        <div class="glass-panel task-panel">
+            <button id="close-tasks" class="close-btn">&times;</button>
+            <h2>Room Tasks 📝</h2>
+            <p style="font-size: 0.9rem; margin-top: -10px; opacity: 0.8;">Goals for this session!</p>
+
+            <ul id="task-list" class="task-list">
+                <!-- Tasks injected here -->
+            </ul>
+
+            <div class="task-input-area">
+                <input type="text" id="task-input" placeholder="Add a new task..." maxlength="50">
+                <button id="add-task-btn" class="btn-primary" style="padding: 0.8rem 1.5rem;">+</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Audio -->
     <audio id="notif-sound" src="/assets/notif.mp3"></audio>
 

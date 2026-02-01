@@ -584,3 +584,103 @@ input[type="text"]:focus {
         transform: translateY(-200px) scale(1.5);
     }
 }
+
+/* --- TASK STYLES --- */
+.task-panel {
+    max-width: 450px;
+    width: 90%;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+.task-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+    flex: 1;
+    overflow-y: auto;
+    max-height: 300px;
+    text-align: left;
+}
+
+.task-item {
+    background: rgba(255, 255, 255, 0.6);
+    margin-bottom: 0.5rem;
+    padding: 0.8rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s;
+    border-left: 4px solid var(--primary);
+}
+
+.task-item.completed {
+    background: rgba(181, 224, 173, 0.4);
+    border-left-color: #7bb376;
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+.task-item:hover {
+    transform: translateX(5px);
+}
+
+.task-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--primary);
+}
+
+.task-text-content {
+    flex: 1;
+}
+
+.task-author {
+    font-size: 0.7rem;
+    color: var(--text-soft);
+    display: block;
+    margin-top: 2px;
+}
+
+.delete-task-btn {
+    background: none;
+    border: none;
+    color: #e57373;
+    font-size: 1.2rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.task-item:hover .delete-task-btn {
+    opacity: 1;
+}
+
+.task-input-area {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.task-input-area input {
+    flex: 1;
+}
+
+/* Confetti Celebration */
+.confetti {
+    position: fixed;
+    width: 10px;
+    height: 10px;
+    background-color: var(--primary);
+    animation: fall 3s linear forwards;
+    z-index: 999;
+}
+
+@keyframes fall {
+    to {
+        transform: translateY(100vh) rotate(720deg);
+    }
+}
+}

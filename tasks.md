@@ -42,7 +42,7 @@ One-by-one roadmap to build the "Serenity" study collaboration site.
     - Add "Quick Reactions" (floating emojis/cute icons).
     - *Tech: Socket.io, CSS Animations*
 
-- [ ] **Task 7: Task & Goal Tracking**
+- [x] **Task 7: Task & Goal Tracking**
     - Create a room-level task list.
     - Allow any member to add/complete tasks.
     - Add "Cute Feedback" (confetti/chibi toast) when a task is finished.

@@ -187,8 +187,106 @@ function renderDesk(participants) {
 }
 
 // Placeholder listeners for other buttons
-document.getElementById('tasks-btn').addEventListener('click', () => alert('Task Board coming soon! 📝'));
 document.getElementById('god-btn').addEventListener('click', () => alert('The Chibi God is sleeping... 💤 (Coming soon)'));
+
+// --- TASKS FUNCTIONALITY ---
+const tasksOverlay = document.getElementById('tasks-overlay');
+const closeTasksBtn = document.getElementById('close-tasks');
+const taskList = document.getElementById('task-list');
+const taskInput = document.getElementById('task-input');
+const addTaskBtn = document.getElementById('add-task-btn');
+
+document.getElementById('tasks-btn').addEventListener('click', () => {
+    tasksOverlay.classList.remove('hidden');
+    taskInput.focus();
+});
+
+closeTasksBtn.addEventListener('click', () => {
+    tasksOverlay.classList.add('hidden');
+});
+
+function addTask() {
+    const text = taskInput.value.trim();
+    if (text) {
+        socket.emit('add-task', text);
+        taskInput.value = '';
+    }
+}
+
+addTaskBtn.addEventListener('click', addTask);
+taskInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') addTask();
+});
+
+// Task Updates
+socket.on('update-tasks', (tasks) => {
+    taskList.innerHTML = '';
+    tasks.forEach(task => {
+        const li = document.createElement('li');
+        li.className = `task-item ${task.completed ? 'completed' : ''}`;
+
+        li.innerHTML = `
+            <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
+            <div class="task-text-content">
+                <span>${escapeHtml(task.text)}</span>
+                <span class="task-author">Added by ${task.author}</span>
+            </div>
+            <button class="delete-task-btn" title="Delete">&times;</button>
+        `;
+
+        // Checkbox listener
+        li.querySelector('.task-checkbox').addEventListener('change', () => {
+            socket.emit('toggle-task', task.id);
+        });
+
+        // Delete listener
+        li.querySelector('.delete-task-btn').addEventListener('click', () => {
+            if (confirm('Delete this task?')) {
+                socket.emit('delete-task', task.id);
+            }
+        });
+
+        taskList.appendChild(li);
+    });
+});
+
+// Celebration
+socket.on('task-completed-celebration', (taskText) => {
+    // Play happy sound
+    const audio = new Audio('/assets/notif.mp3');
+    audio.play().catch(() => { });
+
+    // Confetti explosion
+    for (let i = 0; i < 30; i++) {
+        const conf = document.createElement('div');
+        conf.className = 'confetti';
+        conf.style.left = Math.random() * 100 + 'vw';
+        conf.style.top = '-10px';
+        conf.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 70%)`;
+        conf.style.animationDuration = (Math.random() * 2 + 2) + 's';
+        document.body.appendChild(conf);
+        setTimeout(() => conf.remove(), 4000);
+    }
+
+    // Toast
+    const toast = document.createElement('div');
+    toast.className = 'glass-panel bouncy';
+    toast.style.position = 'fixed';
+    toast.style.top = '20px';
+    toast.style.left = '50%';
+    toast.style.transform = 'translateX(-50%)';
+    toast.style.zIndex = '1000';
+    toast.style.padding = '1rem 2rem';
+    toast.style.textAlign = 'center';
+
+    toast.innerHTML = `
+        <h3 style="margin:0">Yay! Task Complete! 🎉</h3>
+        <p style="margin:5px 0 0 0; opacity:0.8; font-size:0.9rem;">"${escapeHtml(taskText)}"</p>
+    `;
+
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+});
 
 // --- CHAT FUNCTIONALITY ---
 const chatOverlay = document.getElementById('chat-overlay');

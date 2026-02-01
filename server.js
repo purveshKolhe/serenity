@@ -63,6 +63,10 @@ io.on('connection', (socket) => {
         // Send current timer state immediately
         const { intervalId, ...timerState } = room.timer; // Don't send the intervalId
         socket.emit('timer-update', timerState);
+        // Send current tasks
+        if (room.tasks) {
+            socket.emit('update-tasks', room.tasks);
+        }
 
         console.log(`${user.nickname} joined room ${roomId}. Total: ${room.participants.length}`);
 
@@ -176,6 +180,39 @@ io.on('connection', (socket) => {
                     emoji: emoji
                 });
             }
+        });
+
+        // --- TASK HANDLERS ---
+        socket.on('add-task', (taskText) => {
+            if (!room.tasks) room.tasks = [];
+
+            const newTask = {
+                id: Date.now().toString(), // Simple unique ID
+                text: taskText,
+                completed: false,
+                author: room.participants.find(p => p.id === socket.id)?.nickname || 'Someone'
+            };
+            room.tasks.push(newTask);
+            io.to(roomId).emit('update-tasks', room.tasks);
+        });
+
+        socket.on('toggle-task', (taskId) => {
+            if (!room.tasks) return;
+            const task = room.tasks.find(t => t.id === taskId);
+            if (task) {
+                task.completed = !task.completed;
+                io.to(roomId).emit('update-tasks', room.tasks);
+
+                if (task.completed) {
+                    io.to(roomId).emit('task-completed-celebration', task.text);
+                }
+            }
+        });
+
+        socket.on('delete-task', (taskId) => {
+            if (!room.tasks) return;
+            room.tasks = room.tasks.filter(t => t.id !== taskId);
+            io.to(roomId).emit('update-tasks', room.tasks);
         });
 
 
