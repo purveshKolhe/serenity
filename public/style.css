@@ -1444,14 +1444,14 @@ input[type="text"]:focus {
     }
 
     .student-label {
-        font-size: 1.2rem;
+        font-size: 3rem;
         padding: 5px 12px;
-        top: -25px;
+        top: -50px;
     }
 
     .chat-cloud {
         padding: 15px 30px;
-        font-size: 1.8rem;
+        font-size: 3.2rem;
         min-width: 200px;
         bottom: calc(100% + 40px);
     }
