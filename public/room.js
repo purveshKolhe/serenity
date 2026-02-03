@@ -13,9 +13,7 @@ const exitBtn = document.getElementById('exit-btn');
 const deskContainer = document.getElementById('desk');
 const deskStage = document.getElementById('desk-stage');
 
-// Timer Elements
-const timerOverlay = document.getElementById('timer-overlay');
-const closeTimerBtn = document.getElementById('close-timer');
+// Timer Elements (now in window-pomodoro)
 const timerModeDisplay = document.getElementById('timer-mode');
 const timerDisplay = document.getElementById('timer-display');
 const startTimerBtn = document.getElementById('start-timer');
@@ -23,7 +21,15 @@ const pauseTimerBtn = document.getElementById('pause-timer');
 const resetTimerBtn = document.getElementById('reset-timer');
 const modeBtns = document.querySelectorAll('.mode-btn');
 const notifSound = document.getElementById('notif-sound');
-if (notifSound) notifSound.volume = 0.5;
+if (notifSound) notifSound.volume = 0.4; // 80% of 0.5
+
+// === WINDOW MANAGER GLOBALS (must be defined early) ===
+let highestZ = 2000;
+function bringToFront(win) {
+    if (!win) return;
+    highestZ++;
+    win.style.zIndex = highestZ;
+}
 
 // Validation
 if (!user || !roomId) {
@@ -32,11 +38,15 @@ if (!user || !roomId) {
 
 roomNameDisplay.innerText = roomId;
 
-// Theme Switcher
+// Socket Connection & Real-time Events
+const roomLayout = document.querySelector('.room-layout');
+
+// Background Cycler
+const bgList = ['forest.png', 'hogwarts.png', 'library.png', 'stars.png', 'tech.png', 'valley.png'];
+let currentBgIndex = 0;
 themeBtn.addEventListener('click', () => {
-    document.body.classList.remove(themes[currentThemeIndex]);
-    currentThemeIndex = (currentThemeIndex + 1) % themes.length;
-    document.body.classList.add(themes[currentThemeIndex]);
+    currentBgIndex = (currentBgIndex + 1) % bgList.length;
+    roomLayout.style.backgroundImage = `url('/bgs/${bgList[currentBgIndex]}')`;
 });
 
 exitBtn.addEventListener('click', () => {
@@ -44,9 +54,6 @@ exitBtn.addEventListener('click', () => {
         window.location.href = '/';
     });
 });
-
-// Socket Connection & Real-time Events
-const roomLayout = document.querySelector('.room-layout');
 
 // --- DYNAMIC BACKGROUND SYSTEM (Pollinations.ai Flux) ---
 function getSeedFromString(str) {
@@ -132,12 +139,20 @@ function updateTimerUI(state) {
 
     // Tiny Persistent Timer
     const tinyTimer = document.getElementById('tiny-timer');
+    const pomodoroDisplay = document.getElementById('pomodoro-display');
+
     if (tinyTimer) {
+        tinyTimer.innerText = formattedTime; // + (state.mode === 'focus' ? ' 🍅' : ' ☕'); 
+        // Removed emoji from text since specific styles might handle it? 
+        // Actually user didn't ask to remove it, but CSS uses custom font. I'll keep emoji.
         tinyTimer.innerText = formattedTime + (state.mode === 'focus' ? ' 🍅' : ' ☕');
-        if (state.isRunning || state.isPaused) { // Show if running or paused (active session)
-            tinyTimer.classList.add('visible');
+
+        const container = pomodoroDisplay || tinyTimer;
+
+        if (state.isRunning || state.isPaused) {
+            container.classList.add('visible');
         } else {
-            tinyTimer.classList.remove('visible');
+            container.classList.remove('visible');
         }
     }
 
@@ -180,13 +195,14 @@ modeBtns.forEach(btn => {
     });
 });
 
-// Timer Overlay Controls
+// Timer Window Controls
+const windowPomodoro = document.getElementById('window-pomodoro');
+// Toggle logic for Pomodoro
 document.getElementById('timer-btn').addEventListener('click', () => {
-    timerOverlay.classList.remove('hidden');
+    windowPomodoro.classList.toggle('hidden');
+    bringToFront(windowPomodoro);
 });
-closeTimerBtn.addEventListener('click', () => {
-    timerOverlay.classList.add('hidden');
-});
+// (Close/Minimize handled by generic logic below)
 
 // Duration Customization
 const toggleSettingsBtn = document.getElementById('toggle-settings');
@@ -349,12 +365,16 @@ const closeQuizSetupBtn = document.getElementById('close-quiz-setup');
 const quizTopic = document.getElementById('quiz-topic');
 const startQuizBtn = document.getElementById('start-quiz-btn');
 
-const quizOverlay = document.getElementById('quiz-overlay');
+// Use Window ID
+const windowQuiz = document.getElementById('window-quiz');
 const quizQuestion = document.getElementById('quiz-question');
 const quizOptions = document.getElementById('quiz-options');
 const quizProgress = document.getElementById('quiz-progress');
 
 document.getElementById('quiz-init-btn').addEventListener('click', () => {
+    // Show Setup Modal OR switch to Setup Window?
+    // User asked for generic window with close.
+    // Let's keep Setup Modal as "App Launcher" for the Quiz Window
     quizSetupOverlay.classList.remove('hidden');
     quizTopic.focus();
 });
@@ -377,11 +397,14 @@ startQuizBtn.addEventListener('click', () => {
         socket.emit('start-quiz-v2', topic);
         quizTopic.value = '';
         quizSetupOverlay.classList.add('hidden');
+        windowQuiz.classList.remove('hidden'); // Show Window
+        bringToFront(windowQuiz);
     }
 });
 
 closeQuizResultsBtn.addEventListener('click', () => {
-    quizOverlay.classList.add('hidden');
+    windowQuiz.classList.add('hidden'); // Hide window entirely on finish close?
+    // Or just revert view? User said "close option".
     quizResultsView.classList.add('hidden');
     quizActiveView.classList.remove('hidden');
 });
@@ -391,8 +414,10 @@ socket.on('quiz-state-loading', () => {
 });
 
 socket.on('quiz-state-question', (data) => {
-    // Show Overlay
-    quizOverlay.classList.remove('hidden');
+    // Show Window
+    windowQuiz.classList.remove('hidden');
+    bringToFront(windowQuiz);
+
     quizResultsView.classList.add('hidden');
     quizActiveView.classList.remove('hidden');
 
@@ -487,20 +512,18 @@ function spawnConfetti(count = 20) {
 }
 
 // --- TASKS FUNCTIONALITY ---
-const tasksOverlay = document.getElementById('tasks-overlay');
-const closeTasksBtn = document.getElementById('close-tasks');
+const windowTasks = document.getElementById('window-tasks');
 const taskList = document.getElementById('task-list');
 const taskInput = document.getElementById('task-input');
 const addTaskBtn = document.getElementById('add-task-btn');
 
 document.getElementById('tasks-btn').addEventListener('click', () => {
-    tasksOverlay.classList.remove('hidden');
-    taskInput.focus();
+    windowTasks.classList.toggle('hidden');
+    bringToFront(windowTasks);
+    if (!windowTasks.classList.contains('hidden')) taskInput.focus();
 });
 
-closeTasksBtn.addEventListener('click', () => {
-    tasksOverlay.classList.add('hidden');
-});
+// closeTasksBtn removed (handled by generic window logic)
 
 function addTask() {
     const text = taskInput.value.trim();
@@ -586,21 +609,89 @@ socket.on('task-completed-celebration', (taskText) => {
 });
 
 // --- CHAT FUNCTIONALITY ---
-const chatOverlay = document.getElementById('chat-overlay');
-const closeChatBtn = document.getElementById('close-chat');
+// --- CHAT FUNCTIONALITY ---
+const windowChat = document.getElementById('window-chat');
 const chatMessages = document.getElementById('chat-messages');
 const chatInput = document.getElementById('chat-input');
 const sendChatBtn = document.getElementById('send-chat');
 const reactionBtns = document.querySelectorAll('.reaction-btn');
 
 document.getElementById('chat-btn').addEventListener('click', () => {
-    chatOverlay.classList.remove('hidden');
-    chatInput.focus();
+    windowChat.classList.toggle('hidden');
+    bringToFront(windowChat);
+    if (!windowChat.classList.contains('hidden')) chatInput.focus();
 });
 
-closeChatBtn.addEventListener('click', () => {
-    chatOverlay.classList.add('hidden');
+// Generic Window Manager will handle close button
+
+/* ========================
+   WINDOW MANAGER SYSTEM
+   ======================== */
+const windows = document.querySelectorAll('.os-window');
+// highestZ and bringToFront defined at top of file
+
+// 1. Generic Control Setup
+windows.forEach(win => {
+    // Bring to front on mousedown
+    win.addEventListener('mousedown', () => bringToFront(win));
+
+    const header = win.querySelector('.window-header');
+    const minimizeBtn = win.querySelector('.btn-minimize');
+    const closeBtn = win.querySelector('.btn-close');
+
+    // Minimize Listener
+    if (minimizeBtn) {
+        minimizeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            win.classList.toggle('minimized');
+        });
+    }
+
+    // Close Listener
+    if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            win.classList.add('hidden');
+        });
+    }
+
+    // Make Draggable
+    if (header) {
+        makeDraggable(win, header);
+    }
 });
+
+// 2. Draggable Utility
+function makeDraggable(element, handle) {
+    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+    handle.onmousedown = dragMouseDown;
+
+    function dragMouseDown(e) {
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+        bringToFront(element);
+    }
+
+    function elementDrag(e) {
+        e.preventDefault();
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        element.style.top = (element.offsetTop - pos2) + "px";
+        element.style.left = (element.offsetLeft - pos1) + "px";
+    }
+
+    function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
+    }
+}
+
 
 function sendMessage() {
     const text = chatInput.value.trim();
