@@ -336,11 +336,15 @@ function renderDesk(participants) {
         // --- ASSET MAPPING ---
         const vidNum = AVATAR_TO_VID[p.avatar] || 1; // Fallback to 1
         const isSitting = data.id.endsWith('s');
-        const vidFileName = isSitting ? `${vidNum}s.apng` : `${vidNum}.apng`;
+        const vidFileName = isSitting ? `${vidNum}s.webm` : `${vidNum}.webm`;
 
-        const vid = document.createElement('img');
+        const vid = document.createElement('video');
         vid.src = `/vids/${vidFileName}`;
         vid.className = 'student-video';
+        vid.autoplay = true;
+        vid.loop = true;
+        vid.muted = true;
+        vid.playsInline = true;
 
         // Flip IMAGE only (not container)
         if (data.x > 0) {

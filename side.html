@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -47,7 +48,8 @@
             margin: 0 6px;
         }
 
-        .btn, .file-label {
+        .btn,
+        .file-label {
             padding: 7px 12px;
             background: #0f3460;
             color: #e4e4e4;
@@ -59,11 +61,13 @@
             white-space: nowrap;
         }
 
-        .btn:hover, .file-label:hover {
+        .btn:hover,
+        .file-label:hover {
             background: #1a5a8a;
         }
 
-        .btn:active, .file-label:active {
+        .btn:active,
+        .file-label:active {
             background: #0a2a4a;
         }
 
@@ -135,10 +139,29 @@
             display: block;
         }
 
-        .handle-nw { top: -6px; left: -6px; cursor: nwse-resize; }
-        .handle-ne { top: -6px; right: -6px; cursor: nesw-resize; }
-        .handle-sw { bottom: -6px; left: -6px; cursor: nesw-resize; }
-        .handle-se { bottom: -6px; right: -6px; cursor: nwse-resize; }
+        .handle-nw {
+            top: -6px;
+            left: -6px;
+            cursor: nwse-resize;
+        }
+
+        .handle-ne {
+            top: -6px;
+            right: -6px;
+            cursor: nesw-resize;
+        }
+
+        .handle-sw {
+            bottom: -6px;
+            left: -6px;
+            cursor: nesw-resize;
+        }
+
+        .handle-se {
+            bottom: -6px;
+            right: -6px;
+            cursor: nwse-resize;
+        }
 
         #info-bar {
             position: fixed;
@@ -165,6 +188,7 @@
         }
     </style>
 </head>
+
 <body>
     <div id="toolbar">
         <div class="toolbar-group">
@@ -178,7 +202,7 @@
             </label>
             <label class="file-label">
                 👤 Student
-                <input type="file" class="file-input" id="student-upload" accept="image/png,image/apng">
+                <input type="file" class="file-input" id="student-upload" accept="image/png,video/webm">
             </label>
         </div>
 
@@ -208,581 +232,591 @@
     </div>
 
     <script>
-    (function() {
-        'use strict';
-
-        // ========================================
-        // STATE MANAGEMENT
-        // ========================================
-        const state = {
-            background: null,
-            table: null,
-            students: [],
-            selectedElement: null,
-            zIndexCounter: 1
-        };
-
-        // Interaction state for drag/resize
-        let interaction = null;
-
-        // ========================================
-        // DOM REFERENCES
-        // ========================================
-        const canvas = document.getElementById('canvas');
-        const backgroundImg = document.getElementById('background-img');
-        const infoText = document.getElementById('info-text');
-        const coordsDisplay = document.getElementById('coords-display');
-
-        // ========================================
-        // UTILITY FUNCTIONS
-        // ========================================
-        function getFilenameWithoutExtension(filename) {
-            const lastDot = filename.lastIndexOf('.');
-            return lastDot > 0 ? filename.substring(0, lastDot) : filename;
-        }
-
-        function setInfo(text) {
-            infoText.textContent = text;
-        }
-
-        function setCoords(text) {
-            coordsDisplay.textContent = text;
-        }
-
-        function getCanvasRect() {
-            return canvas.getBoundingClientRect();
-        }
-
-        function roundTo(value, decimals = 4) {
-            const factor = Math.pow(10, decimals);
-            return Math.round(value * factor) / factor;
-        }
-
-        // ========================================
-        // OBJECT MANAGEMENT
-        // ========================================
-        function createObjectElement(type, id, imageSrc, onLoad) {
-            const container = document.createElement('div');
-            container.className = 'object';
-            container.dataset.type = type;
-            container.dataset.id = id;
-
-            const img = document.createElement('img');
-            img.className = 'object-image';
-            img.src = imageSrc;
-            img.draggable = false;
-            container.appendChild(img);
-
-            // Create resize handles
-            const corners = ['nw', 'ne', 'sw', 'se'];
-            corners.forEach(corner => {
-                const handle = document.createElement('div');
-                handle.className = `resize-handle handle-${corner}`;
-                handle.dataset.corner = corner;
-                container.appendChild(handle);
-            });
-
-            img.onload = function() {
-                if (onLoad) {
-                    onLoad(img.naturalWidth, img.naturalHeight);
-                }
-            };
-
-            return container;
-        }
-
-        function getObjectData(element) {
-            if (!element) return null;
-            const type = element.dataset.type;
-
-            if (type === 'table') {
-                return state.table;
-            } else if (type === 'student') {
-                return state.students.find(s => s.element === element);
-            }
-            return null;
-        }
-
-        function updateObjectTransform(element, data) {
-            const img = element.querySelector('.object-image');
-            const width = data.originalWidth * data.scale;
-            const height = data.originalHeight * data.scale;
-
-            // Set container dimensions
-            element.style.width = width + 'px';
-            element.style.height = height + 'px';
-
-            // Set image dimensions and transforms
-            img.style.width = width + 'px';
-            img.style.height = height + 'px';
-            img.style.transformOrigin = 'center center';
-            img.style.transform = data.flipped ? 'scaleX(-1)' : 'none';
-        }
-
-        function getObjectCenter(element, data) {
-            const left = parseFloat(element.style.left) || 0;
-            const top = parseFloat(element.style.top) || 0;
-            const width = data.originalWidth * data.scale;
-            const height = data.originalHeight * data.scale;
-
-            return {
-                x: left + width / 2,
-                y: top + height / 2
-            };
-        }
-
-        // ========================================
-        // SELECTION
-        // ========================================
-        function selectElement(element) {
-            // Deselect previous
-            if (state.selectedElement) {
-                state.selectedElement.classList.remove('selected');
-            }
-
-            state.selectedElement = element;
-
-            if (element) {
-                element.classList.add('selected');
-                const data = getObjectData(element);
-                if (data) {
-                    const type = element.dataset.type;
-                    setInfo(`Selected: ${type} "${data.id}" | Scale: ${data.scale.toFixed(2)} | Flipped: ${data.flipped}`);
-                }
-            } else {
-                setInfo('No selection');
-                setCoords('');
-            }
-        }
-
-        function deselectAll() {
-            selectElement(null);
-        }
-
-        // ========================================
-        // FILE UPLOAD HANDLERS
-        // ========================================
-        
-        // Background upload
-        document.getElementById('bg-upload').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                const id = getFilenameWithoutExtension(file.name);
-                state.background = { id: id };
-                backgroundImg.src = evt.target.result;
-                backgroundImg.style.display = 'block';
-                setInfo(`Background set: "${id}"`);
-            };
-            reader.readAsDataURL(file);
-            e.target.value = '';
-        });
-
-        // Table upload
-        document.getElementById('table-upload').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            // Remove existing table if present
-            if (state.table && state.table.element) {
-                state.table.element.remove();
-                state.table = null;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                const id = getFilenameWithoutExtension(file.name);
-                
-                const element = createObjectElement('table', id, evt.target.result, function(natWidth, natHeight) {
-                    const canvasRect = getCanvasRect();
-
-                    // Center on canvas
-                    const x = (canvasRect.width - natWidth) / 2;
-                    const y = (canvasRect.height - natHeight) / 2;
-
-                    element.style.left = x + 'px';
-                    element.style.top = y + 'px';
-                    element.style.zIndex = state.zIndexCounter++;
-
-                    state.table = {
-                        id: id,
-                        element: element,
-                        scale: 1.0,
-                        flipped: false,
-                        originalWidth: natWidth,
-                        originalHeight: natHeight
-                    };
-
-                    updateObjectTransform(element, state.table);
-                    canvas.appendChild(element);
-                    selectElement(element);
-                    setInfo(`Table added: "${id}"`);
-                });
-            };
-            reader.readAsDataURL(file);
-            e.target.value = '';
-        });
-
-        // Student upload
-        document.getElementById('student-upload').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                const id = getFilenameWithoutExtension(file.name);
-
-                const element = createObjectElement('student', id, evt.target.result, function(natWidth, natHeight) {
-                    const canvasRect = getCanvasRect();
-
-                    // Place with slight random offset from center
-                    const offsetX = (Math.random() - 0.5) * 150;
-                    const offsetY = (Math.random() - 0.5) * 150;
-                    const x = (canvasRect.width - natWidth) / 2 + offsetX;
-                    const y = (canvasRect.height - natHeight) / 2 + offsetY;
-
-                    element.style.left = x + 'px';
-                    element.style.top = y + 'px';
-                    element.style.zIndex = state.zIndexCounter++;
-
-                    const studentData = {
-                        id: id,
-                        element: element,
-                        scale: 1.0,
-                        flipped: false,
-                        originalWidth: natWidth,
-                        originalHeight: natHeight
-                    };
-
-                    state.students.push(studentData);
-                    updateObjectTransform(element, studentData);
-                    canvas.appendChild(element);
-                    selectElement(element);
-                    setInfo(`Student added: "${id}"`);
-                });
-            };
-            reader.readAsDataURL(file);
-            e.target.value = '';
-        });
-
-        // ========================================
-        // MOUSE INTERACTION
-        // ========================================
-        canvas.addEventListener('mousedown', function(e) {
-            const target = e.target;
-
-            // Clicking on canvas background or background image
-            if (target === canvas || target === backgroundImg) {
-                deselectAll();
-                return;
-            }
-
-            // Find parent object container
-            const objectEl = target.closest('.object');
-            if (!objectEl) return;
-
-            e.preventDefault();
-            selectElement(objectEl);
-
-            const data = getObjectData(objectEl);
-            if (!data) return;
-
-            // Check if clicking on resize handle
-            if (target.classList.contains('resize-handle')) {
-                const corner = target.dataset.corner;
-                interaction = {
-                    mode: 'resize',
-                    element: objectEl,
-                    data: data,
-                    corner: corner,
-                    startMouseX: e.clientX,
-                    startMouseY: e.clientY,
-                    startScale: data.scale,
-                    startLeft: parseFloat(objectEl.style.left) || 0,
-                    startTop: parseFloat(objectEl.style.top) || 0,
-                    startWidth: data.originalWidth * data.scale,
-                    startHeight: data.originalHeight * data.scale
-                };
-            } else {
-                // Regular drag
-                interaction = {
-                    mode: 'drag',
-                    element: objectEl,
-                    data: data,
-                    startMouseX: e.clientX,
-                    startMouseY: e.clientY,
-                    startLeft: parseFloat(objectEl.style.left) || 0,
-                    startTop: parseFloat(objectEl.style.top) || 0
-                };
-            }
-        });
-
-        document.addEventListener('mousemove', function(e) {
-            // Update coordinates display
-            const canvasRect = getCanvasRect();
-            const relX = (e.clientX - canvasRect.left) / canvasRect.width;
-            const relY = (e.clientY - canvasRect.top) / canvasRect.height;
-            
-            if (relX >= 0 && relX <= 1 && relY >= 0 && relY <= 1) {
-                setCoords(`x: ${relX.toFixed(3)}, y: ${relY.toFixed(3)}`);
-            }
-
-            if (!interaction) return;
-
-            const dx = e.clientX - interaction.startMouseX;
-            const dy = e.clientY - interaction.startMouseY;
-
-            if (interaction.mode === 'drag') {
-                const newLeft = interaction.startLeft + dx;
-                const newTop = interaction.startTop + dy;
-                interaction.element.style.left = newLeft + 'px';
-                interaction.element.style.top = newTop + 'px';
-
-            } else if (interaction.mode === 'resize') {
-                // Calculate scale based on corner and mouse movement
-                let scaleMultiplier = 0;
-                const corner = interaction.corner;
-
-                // Diagonal distance change
-                if (corner === 'se') {
-                    scaleMultiplier = (dx + dy);
-                } else if (corner === 'nw') {
-                    scaleMultiplier = -(dx + dy);
-                } else if (corner === 'ne') {
-                    scaleMultiplier = (dx - dy);
-                } else if (corner === 'sw') {
-                    scaleMultiplier = (-dx + dy);
-                }
-
-                const sensitivity = 200;
-                const scaleDelta = scaleMultiplier / sensitivity;
-                let newScale = interaction.startScale * (1 + scaleDelta);
-                newScale = Math.max(0.1, Math.min(10, newScale));
-
-                interaction.data.scale = newScale;
-                updateObjectTransform(interaction.element, interaction.data);
-
-                // For corner resizing, adjust position to keep opposite corner fixed
-                if (corner === 'nw' || corner === 'ne' || corner === 'sw') {
-                    const oldWidth = interaction.startWidth;
-                    const oldHeight = interaction.startHeight;
-                    const newWidth = interaction.data.originalWidth * newScale;
-                    const newHeight = interaction.data.originalHeight * newScale;
-
-                    let newLeft = interaction.startLeft;
-                    let newTop = interaction.startTop;
-
-                    if (corner === 'nw') {
-                        newLeft = interaction.startLeft + (oldWidth - newWidth);
-                        newTop = interaction.startTop + (oldHeight - newHeight);
-                    } else if (corner === 'ne') {
-                        newTop = interaction.startTop + (oldHeight - newHeight);
-                    } else if (corner === 'sw') {
-                        newLeft = interaction.startLeft + (oldWidth - newWidth);
-                    }
-
-                    interaction.element.style.left = newLeft + 'px';
-                    interaction.element.style.top = newTop + 'px';
-                }
-
-                setInfo(`Resizing: scale = ${newScale.toFixed(3)}`);
-            }
-        });
-
-        document.addEventListener('mouseup', function() {
-            if (interaction) {
-                const data = interaction.data;
-                const type = interaction.element.dataset.type;
-                setInfo(`${type} "${data.id}" | Scale: ${data.scale.toFixed(2)} | Flipped: ${data.flipped}`);
-            }
-            interaction = null;
-        });
-
-        // ========================================
-        // TOOLBAR BUTTONS
-        // ========================================
-        
-        // Flip
-        document.getElementById('btn-flip').addEventListener('click', function() {
-            if (!state.selectedElement) {
-                setInfo('No object selected');
-                return;
-            }
-
-            const data = getObjectData(state.selectedElement);
-            if (data) {
-                data.flipped = !data.flipped;
-                updateObjectTransform(state.selectedElement, data);
-                setInfo(`Flipped "${data.id}": ${data.flipped}`);
-            }
-        });
-
-        // Bring Forward
-        document.getElementById('btn-forward').addEventListener('click', function() {
-            if (!state.selectedElement) {
-                setInfo('No object selected');
-                return;
-            }
-            state.selectedElement.style.zIndex = state.zIndexCounter++;
-            setInfo('Brought forward (z-index: ' + state.selectedElement.style.zIndex + ')');
-        });
-
-        // Send Backward
-        document.getElementById('btn-backward').addEventListener('click', function() {
-            if (!state.selectedElement) {
-                setInfo('No object selected');
-                return;
-            }
-            const currentZ = parseInt(state.selectedElement.style.zIndex) || 1;
-            const newZ = Math.max(1, currentZ - 1);
-            state.selectedElement.style.zIndex = newZ;
-            setInfo('Sent backward (z-index: ' + newZ + ')');
-        });
-
-        // Delete
-        document.getElementById('btn-delete').addEventListener('click', deleteSelectedObject);
-
-        function deleteSelectedObject() {
-            if (!state.selectedElement) {
-                setInfo('No object selected');
-                return;
-            }
-
-            const element = state.selectedElement;
-            const type = element.dataset.type;
-            const data = getObjectData(element);
-            const id = data ? data.id : 'unknown';
-
-            if (type === 'table') {
-                state.table = null;
-            } else if (type === 'student') {
-                const index = state.students.findIndex(s => s.element === element);
-                if (index !== -1) {
-                    state.students.splice(index, 1);
-                }
-            }
-
-            element.remove();
-            state.selectedElement = null;
-            setInfo(`Deleted ${type}: "${id}"`);
-        }
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            // Ignore if typing in an input
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-                return;
-            }
-
-            if (e.key === 'Delete' || e.key === 'Backspace') {
-                e.preventDefault();
-                deleteSelectedObject();
-            } else if (e.key === 'f' || e.key === 'F') {
-                e.preventDefault();
-                document.getElementById('btn-flip').click();
-            } else if (e.key === 'Escape') {
-                deselectAll();
-            }
-        });
-
-        // ========================================
-        // EXPORT METADATA
-        // ========================================
-        document.getElementById('btn-export').addEventListener('click', exportMetadata);
-
-        function exportMetadata() {
-            const canvasRect = getCanvasRect();
-            const canvasWidth = canvasRect.width;
-            const canvasHeight = canvasRect.height;
-
-            const metadata = {
+        (function () {
+            'use strict';
+
+            // ========================================
+            // STATE MANAGEMENT
+            // ========================================
+            const state = {
                 background: null,
                 table: null,
-                students: []
+                students: [],
+                selectedElement: null,
+                zIndexCounter: 1
             };
 
-            // Background metadata
-            if (state.background) {
-                metadata.background = {
-                    id: state.background.id
-                };
+            // Interaction state for drag/resize
+            let interaction = null;
+
+            // ========================================
+            // DOM REFERENCES
+            // ========================================
+            const canvas = document.getElementById('canvas');
+            const backgroundImg = document.getElementById('background-img');
+            const infoText = document.getElementById('info-text');
+            const coordsDisplay = document.getElementById('coords-display');
+
+            // ========================================
+            // UTILITY FUNCTIONS
+            // ========================================
+            function getFilenameWithoutExtension(filename) {
+                const lastDot = filename.lastIndexOf('.');
+                return lastDot > 0 ? filename.substring(0, lastDot) : filename;
             }
 
-            // Table metadata (position normalized to canvas)
-            let tableCenter = null;
-
-            if (state.table && state.table.element) {
-                const tableEl = state.table.element;
-                const tableData = state.table;
-
-                tableCenter = getObjectCenter(tableEl, tableData);
-
-                metadata.table = {
-                    id: tableData.id,
-                    x: roundTo(tableCenter.x / canvasWidth),
-                    y: roundTo(tableCenter.y / canvasHeight),
-                    scale: roundTo(tableData.scale),
-                    zIndex: parseInt(tableEl.style.zIndex) || 1
-                };
+            function setInfo(text) {
+                infoText.textContent = text;
             }
 
-            // Student metadata (position relative to table center, normalized)
-            state.students.forEach(function(studentData) {
-                const studentEl = studentData.element;
-                const studentCenter = getObjectCenter(studentEl, studentData);
+            function setCoords(text) {
+                coordsDisplay.textContent = text;
+            }
 
-                let relX, relY;
+            function getCanvasRect() {
+                return canvas.getBoundingClientRect();
+            }
 
-                if (tableCenter) {
-                    // Position relative to table center, normalized by canvas dimensions
-                    relX = (studentCenter.x - tableCenter.x) / canvasWidth;
-                    relY = (studentCenter.y - tableCenter.y) / canvasHeight;
-                } else {
-                    // No table present - use absolute normalized position
-                    relX = studentCenter.x / canvasWidth;
-                    relY = studentCenter.y / canvasHeight;
+            function roundTo(value, decimals = 4) {
+                const factor = Math.pow(10, decimals);
+                return Math.round(value * factor) / factor;
+            }
+
+            // ========================================
+            // OBJECT MANAGEMENT
+            // ========================================
+            function createObjectElement(type, id, imageSrc, onLoad) {
+                const container = document.createElement('div');
+                container.className = 'object';
+                container.dataset.type = type;
+                container.dataset.id = id;
+
+                const isVideo = imageSrc.startsWith('data:video') || imageSrc.toLowerCase().endsWith('.webm');
+                const img = document.createElement(isVideo ? 'video' : 'img');
+                img.className = 'object-image';
+                img.src = imageSrc;
+                img.draggable = false;
+
+                if (isVideo) {
+                    img.autoplay = true;
+                    img.loop = true;
+                    img.muted = true;
+                    img.playsInline = true;
                 }
 
-                metadata.students.push({
-                    id: studentData.id,
-                    x: roundTo(relX),
-                    y: roundTo(relY),
-                    scale: roundTo(studentData.scale),
-                    flipped: studentData.flipped,
-                    zIndex: parseInt(studentEl.style.zIndex) || 1
+                container.appendChild(img);
+
+                // Create resize handles
+                const corners = ['nw', 'ne', 'sw', 'se'];
+                corners.forEach(corner => {
+                    const handle = document.createElement('div');
+                    handle.className = `resize-handle handle-${corner}`;
+                    handle.dataset.corner = corner;
+                    container.appendChild(handle);
                 });
+
+                img.onload = function () {
+                    if (onLoad) {
+                        onLoad(img.naturalWidth, img.naturalHeight);
+                    }
+                };
+
+                return container;
+            }
+
+            function getObjectData(element) {
+                if (!element) return null;
+                const type = element.dataset.type;
+
+                if (type === 'table') {
+                    return state.table;
+                } else if (type === 'student') {
+                    return state.students.find(s => s.element === element);
+                }
+                return null;
+            }
+
+            function updateObjectTransform(element, data) {
+                const img = element.querySelector('.object-image');
+                const width = data.originalWidth * data.scale;
+                const height = data.originalHeight * data.scale;
+
+                // Set container dimensions
+                element.style.width = width + 'px';
+                element.style.height = height + 'px';
+
+                // Set image dimensions and transforms
+                img.style.width = width + 'px';
+                img.style.height = height + 'px';
+                img.style.transformOrigin = 'center center';
+                img.style.transform = data.flipped ? 'scaleX(-1)' : 'none';
+            }
+
+            function getObjectCenter(element, data) {
+                const left = parseFloat(element.style.left) || 0;
+                const top = parseFloat(element.style.top) || 0;
+                const width = data.originalWidth * data.scale;
+                const height = data.originalHeight * data.scale;
+
+                return {
+                    x: left + width / 2,
+                    y: top + height / 2
+                };
+            }
+
+            // ========================================
+            // SELECTION
+            // ========================================
+            function selectElement(element) {
+                // Deselect previous
+                if (state.selectedElement) {
+                    state.selectedElement.classList.remove('selected');
+                }
+
+                state.selectedElement = element;
+
+                if (element) {
+                    element.classList.add('selected');
+                    const data = getObjectData(element);
+                    if (data) {
+                        const type = element.dataset.type;
+                        setInfo(`Selected: ${type} "${data.id}" | Scale: ${data.scale.toFixed(2)} | Flipped: ${data.flipped}`);
+                    }
+                } else {
+                    setInfo('No selection');
+                    setCoords('');
+                }
+            }
+
+            function deselectAll() {
+                selectElement(null);
+            }
+
+            // ========================================
+            // FILE UPLOAD HANDLERS
+            // ========================================
+
+            // Background upload
+            document.getElementById('bg-upload').addEventListener('change', function (e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function (evt) {
+                    const id = getFilenameWithoutExtension(file.name);
+                    state.background = { id: id };
+                    backgroundImg.src = evt.target.result;
+                    backgroundImg.style.display = 'block';
+                    setInfo(`Background set: "${id}"`);
+                };
+                reader.readAsDataURL(file);
+                e.target.value = '';
             });
 
-            // Generate and download JSON
-            const jsonString = JSON.stringify(metadata, null, 2);
-            downloadFile(jsonString, 'layout-metadata.json', 'application/json');
-            
-            setInfo('Metadata exported successfully!');
-            console.log('Exported metadata:', metadata);
-        }
+            // Table upload
+            document.getElementById('table-upload').addEventListener('change', function (e) {
+                const file = e.target.files[0];
+                if (!file) return;
 
-        function downloadFile(content, filename, mimeType) {
-            const blob = new Blob([content], { type: mimeType });
-            const url = URL.createObjectURL(blob);
-            
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            URL.revokeObjectURL(url);
-        }
+                // Remove existing table if present
+                if (state.table && state.table.element) {
+                    state.table.element.remove();
+                    state.table = null;
+                }
 
-        // ========================================
-        // INITIALIZATION
-        // ========================================
-        setInfo('Ready — Upload a background image to start');
+                const reader = new FileReader();
+                reader.onload = function (evt) {
+                    const id = getFilenameWithoutExtension(file.name);
 
-    })();
+                    const element = createObjectElement('table', id, evt.target.result, function (natWidth, natHeight) {
+                        const canvasRect = getCanvasRect();
+
+                        // Center on canvas
+                        const x = (canvasRect.width - natWidth) / 2;
+                        const y = (canvasRect.height - natHeight) / 2;
+
+                        element.style.left = x + 'px';
+                        element.style.top = y + 'px';
+                        element.style.zIndex = state.zIndexCounter++;
+
+                        state.table = {
+                            id: id,
+                            element: element,
+                            scale: 1.0,
+                            flipped: false,
+                            originalWidth: natWidth,
+                            originalHeight: natHeight
+                        };
+
+                        updateObjectTransform(element, state.table);
+                        canvas.appendChild(element);
+                        selectElement(element);
+                        setInfo(`Table added: "${id}"`);
+                    });
+                };
+                reader.readAsDataURL(file);
+                e.target.value = '';
+            });
+
+            // Student upload
+            document.getElementById('student-upload').addEventListener('change', function (e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function (evt) {
+                    const id = getFilenameWithoutExtension(file.name);
+
+                    const element = createObjectElement('student', id, evt.target.result, function (natWidth, natHeight) {
+                        const canvasRect = getCanvasRect();
+
+                        // Place with slight random offset from center
+                        const offsetX = (Math.random() - 0.5) * 150;
+                        const offsetY = (Math.random() - 0.5) * 150;
+                        const x = (canvasRect.width - natWidth) / 2 + offsetX;
+                        const y = (canvasRect.height - natHeight) / 2 + offsetY;
+
+                        element.style.left = x + 'px';
+                        element.style.top = y + 'px';
+                        element.style.zIndex = state.zIndexCounter++;
+
+                        const studentData = {
+                            id: id,
+                            element: element,
+                            scale: 1.0,
+                            flipped: false,
+                            originalWidth: natWidth,
+                            originalHeight: natHeight
+                        };
+
+                        state.students.push(studentData);
+                        updateObjectTransform(element, studentData);
+                        canvas.appendChild(element);
+                        selectElement(element);
+                        setInfo(`Student added: "${id}"`);
+                    });
+                };
+                reader.readAsDataURL(file);
+                e.target.value = '';
+            });
+
+            // ========================================
+            // MOUSE INTERACTION
+            // ========================================
+            canvas.addEventListener('mousedown', function (e) {
+                const target = e.target;
+
+                // Clicking on canvas background or background image
+                if (target === canvas || target === backgroundImg) {
+                    deselectAll();
+                    return;
+                }
+
+                // Find parent object container
+                const objectEl = target.closest('.object');
+                if (!objectEl) return;
+
+                e.preventDefault();
+                selectElement(objectEl);
+
+                const data = getObjectData(objectEl);
+                if (!data) return;
+
+                // Check if clicking on resize handle
+                if (target.classList.contains('resize-handle')) {
+                    const corner = target.dataset.corner;
+                    interaction = {
+                        mode: 'resize',
+                        element: objectEl,
+                        data: data,
+                        corner: corner,
+                        startMouseX: e.clientX,
+                        startMouseY: e.clientY,
+                        startScale: data.scale,
+                        startLeft: parseFloat(objectEl.style.left) || 0,
+                        startTop: parseFloat(objectEl.style.top) || 0,
+                        startWidth: data.originalWidth * data.scale,
+                        startHeight: data.originalHeight * data.scale
+                    };
+                } else {
+                    // Regular drag
+                    interaction = {
+                        mode: 'drag',
+                        element: objectEl,
+                        data: data,
+                        startMouseX: e.clientX,
+                        startMouseY: e.clientY,
+                        startLeft: parseFloat(objectEl.style.left) || 0,
+                        startTop: parseFloat(objectEl.style.top) || 0
+                    };
+                }
+            });
+
+            document.addEventListener('mousemove', function (e) {
+                // Update coordinates display
+                const canvasRect = getCanvasRect();
+                const relX = (e.clientX - canvasRect.left) / canvasRect.width;
+                const relY = (e.clientY - canvasRect.top) / canvasRect.height;
+
+                if (relX >= 0 && relX <= 1 && relY >= 0 && relY <= 1) {
+                    setCoords(`x: ${relX.toFixed(3)}, y: ${relY.toFixed(3)}`);
+                }
+
+                if (!interaction) return;
+
+                const dx = e.clientX - interaction.startMouseX;
+                const dy = e.clientY - interaction.startMouseY;
+
+                if (interaction.mode === 'drag') {
+                    const newLeft = interaction.startLeft + dx;
+                    const newTop = interaction.startTop + dy;
+                    interaction.element.style.left = newLeft + 'px';
+                    interaction.element.style.top = newTop + 'px';
+
+                } else if (interaction.mode === 'resize') {
+                    // Calculate scale based on corner and mouse movement
+                    let scaleMultiplier = 0;
+                    const corner = interaction.corner;
+
+                    // Diagonal distance change
+                    if (corner === 'se') {
+                        scaleMultiplier = (dx + dy);
+                    } else if (corner === 'nw') {
+                        scaleMultiplier = -(dx + dy);
+                    } else if (corner === 'ne') {
+                        scaleMultiplier = (dx - dy);
+                    } else if (corner === 'sw') {
+                        scaleMultiplier = (-dx + dy);
+                    }
+
+                    const sensitivity = 200;
+                    const scaleDelta = scaleMultiplier / sensitivity;
+                    let newScale = interaction.startScale * (1 + scaleDelta);
+                    newScale = Math.max(0.1, Math.min(10, newScale));
+
+                    interaction.data.scale = newScale;
+                    updateObjectTransform(interaction.element, interaction.data);
+
+                    // For corner resizing, adjust position to keep opposite corner fixed
+                    if (corner === 'nw' || corner === 'ne' || corner === 'sw') {
+                        const oldWidth = interaction.startWidth;
+                        const oldHeight = interaction.startHeight;
+                        const newWidth = interaction.data.originalWidth * newScale;
+                        const newHeight = interaction.data.originalHeight * newScale;
+
+                        let newLeft = interaction.startLeft;
+                        let newTop = interaction.startTop;
+
+                        if (corner === 'nw') {
+                            newLeft = interaction.startLeft + (oldWidth - newWidth);
+                            newTop = interaction.startTop + (oldHeight - newHeight);
+                        } else if (corner === 'ne') {
+                            newTop = interaction.startTop + (oldHeight - newHeight);
+                        } else if (corner === 'sw') {
+                            newLeft = interaction.startLeft + (oldWidth - newWidth);
+                        }
+
+                        interaction.element.style.left = newLeft + 'px';
+                        interaction.element.style.top = newTop + 'px';
+                    }
+
+                    setInfo(`Resizing: scale = ${newScale.toFixed(3)}`);
+                }
+            });
+
+            document.addEventListener('mouseup', function () {
+                if (interaction) {
+                    const data = interaction.data;
+                    const type = interaction.element.dataset.type;
+                    setInfo(`${type} "${data.id}" | Scale: ${data.scale.toFixed(2)} | Flipped: ${data.flipped}`);
+                }
+                interaction = null;
+            });
+
+            // ========================================
+            // TOOLBAR BUTTONS
+            // ========================================
+
+            // Flip
+            document.getElementById('btn-flip').addEventListener('click', function () {
+                if (!state.selectedElement) {
+                    setInfo('No object selected');
+                    return;
+                }
+
+                const data = getObjectData(state.selectedElement);
+                if (data) {
+                    data.flipped = !data.flipped;
+                    updateObjectTransform(state.selectedElement, data);
+                    setInfo(`Flipped "${data.id}": ${data.flipped}`);
+                }
+            });
+
+            // Bring Forward
+            document.getElementById('btn-forward').addEventListener('click', function () {
+                if (!state.selectedElement) {
+                    setInfo('No object selected');
+                    return;
+                }
+                state.selectedElement.style.zIndex = state.zIndexCounter++;
+                setInfo('Brought forward (z-index: ' + state.selectedElement.style.zIndex + ')');
+            });
+
+            // Send Backward
+            document.getElementById('btn-backward').addEventListener('click', function () {
+                if (!state.selectedElement) {
+                    setInfo('No object selected');
+                    return;
+                }
+                const currentZ = parseInt(state.selectedElement.style.zIndex) || 1;
+                const newZ = Math.max(1, currentZ - 1);
+                state.selectedElement.style.zIndex = newZ;
+                setInfo('Sent backward (z-index: ' + newZ + ')');
+            });
+
+            // Delete
+            document.getElementById('btn-delete').addEventListener('click', deleteSelectedObject);
+
+            function deleteSelectedObject() {
+                if (!state.selectedElement) {
+                    setInfo('No object selected');
+                    return;
+                }
+
+                const element = state.selectedElement;
+                const type = element.dataset.type;
+                const data = getObjectData(element);
+                const id = data ? data.id : 'unknown';
+
+                if (type === 'table') {
+                    state.table = null;
+                } else if (type === 'student') {
+                    const index = state.students.findIndex(s => s.element === element);
+                    if (index !== -1) {
+                        state.students.splice(index, 1);
+                    }
+                }
+
+                element.remove();
+                state.selectedElement = null;
+                setInfo(`Deleted ${type}: "${id}"`);
+            }
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function (e) {
+                // Ignore if typing in an input
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                    return;
+                }
+
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    e.preventDefault();
+                    deleteSelectedObject();
+                } else if (e.key === 'f' || e.key === 'F') {
+                    e.preventDefault();
+                    document.getElementById('btn-flip').click();
+                } else if (e.key === 'Escape') {
+                    deselectAll();
+                }
+            });
+
+            // ========================================
+            // EXPORT METADATA
+            // ========================================
+            document.getElementById('btn-export').addEventListener('click', exportMetadata);
+
+            function exportMetadata() {
+                const canvasRect = getCanvasRect();
+                const canvasWidth = canvasRect.width;
+                const canvasHeight = canvasRect.height;
+
+                const metadata = {
+                    background: null,
+                    table: null,
+                    students: []
+                };
+
+                // Background metadata
+                if (state.background) {
+                    metadata.background = {
+                        id: state.background.id
+                    };
+                }
+
+                // Table metadata (position normalized to canvas)
+                let tableCenter = null;
+
+                if (state.table && state.table.element) {
+                    const tableEl = state.table.element;
+                    const tableData = state.table;
+
+                    tableCenter = getObjectCenter(tableEl, tableData);
+
+                    metadata.table = {
+                        id: tableData.id,
+                        x: roundTo(tableCenter.x / canvasWidth),
+                        y: roundTo(tableCenter.y / canvasHeight),
+                        scale: roundTo(tableData.scale),
+                        zIndex: parseInt(tableEl.style.zIndex) || 1
+                    };
+                }
+
+                // Student metadata (position relative to table center, normalized)
+                state.students.forEach(function (studentData) {
+                    const studentEl = studentData.element;
+                    const studentCenter = getObjectCenter(studentEl, studentData);
+
+                    let relX, relY;
+
+                    if (tableCenter) {
+                        // Position relative to table center, normalized by canvas dimensions
+                        relX = (studentCenter.x - tableCenter.x) / canvasWidth;
+                        relY = (studentCenter.y - tableCenter.y) / canvasHeight;
+                    } else {
+                        // No table present - use absolute normalized position
+                        relX = studentCenter.x / canvasWidth;
+                        relY = studentCenter.y / canvasHeight;
+                    }
+
+                    metadata.students.push({
+                        id: studentData.id,
+                        x: roundTo(relX),
+                        y: roundTo(relY),
+                        scale: roundTo(studentData.scale),
+                        flipped: studentData.flipped,
+                        zIndex: parseInt(studentEl.style.zIndex) || 1
+                    });
+                });
+
+                // Generate and download JSON
+                const jsonString = JSON.stringify(metadata, null, 2);
+                downloadFile(jsonString, 'layout-metadata.json', 'application/json');
+
+                setInfo('Metadata exported successfully!');
+                console.log('Exported metadata:', metadata);
+            }
+
+            function downloadFile(content, filename, mimeType) {
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                URL.revokeObjectURL(url);
+            }
+
+            // ========================================
+            // INITIALIZATION
+            // ========================================
+            setInfo('Ready — Upload a background image to start');
+
+        })();
     </script>
 </body>
+
 </html>

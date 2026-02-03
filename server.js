@@ -27,7 +27,7 @@ app.get('/api/vids', (req, res) => {
     const vidDir = path.join(__dirname, 'vids');
     fs.readdir(vidDir, (err, files) => {
         if (err) return res.status(500).json([]);
-        const sorted = files.filter(f => /\.(png|apng|gif|webm|mp4)$/i.test(f)).sort();
+        const sorted = files.filter(f => /\.(png|gif|webm|mp4)$/i.test(f)).sort();
         res.json(sorted);
     });
 });
@@ -36,7 +36,7 @@ app.get('/api/avatars', (req, res) => {
     const avatarDir = path.join(__dirname, 'avatars');
     fs.readdir(avatarDir, (err, files) => {
         if (err) return res.status(500).json([]);
-        const sorted = files.filter(f => /\.(png|apng|gif|webm|jpg|jpeg)$/i.test(f)).sort();
+        const sorted = files.filter(f => /\.(png|gif|webm|jpg|jpeg)$/i.test(f)).sort();
         res.json(sorted);
     });
 });
