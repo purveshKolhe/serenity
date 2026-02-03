@@ -10,7 +10,8 @@ const themes = ['theme-cafe', 'theme-gamer', 'theme-cloud'];
 const roomNameDisplay = document.getElementById('room-name-display');
 const themeBtn = document.getElementById('theme-btn');
 const exitBtn = document.getElementById('exit-btn');
-const desk = document.getElementById('desk');
+const deskContainer = document.getElementById('desk');
+const deskStage = document.getElementById('desk-stage');
 
 // Timer Elements
 const timerOverlay = document.getElementById('timer-overlay');
@@ -208,6 +209,7 @@ saveDurationsBtn.addEventListener('click', () => {
 
 
 // --- COMPOSITING METADATA ---
+const DESK_STAGE = { baseWidth: null, baseHeight: null, offsetY: 0.055 };
 const DESK_DATA = { id: "desk", x: 0.5045, y: 0.8131, scale: 0.452, zIndex: 6 };
 const STUDENT_DATA = [
     { id: "1", x: 0.0834, y: -0.1103, scale: 0.3757, zIndex: 1 },
@@ -234,22 +236,56 @@ const AVATAR_TO_VID = {
     'sunshine.png': 14
 };
 
+function ensureDeskStageBase(containerWidth, containerHeight) {
+    if (DESK_STAGE.baseWidth && DESK_STAGE.baseHeight) return;
+    DESK_STAGE.baseWidth = containerWidth;
+    DESK_STAGE.baseHeight = containerHeight;
+    deskStage.style.width = `${DESK_STAGE.baseWidth}px`;
+    deskStage.style.height = `${DESK_STAGE.baseHeight}px`;
+}
+
+function updateDeskStageScale() {
+    if (!deskContainer || !deskStage) return;
+    const containerWidth = deskContainer.clientWidth;
+    const containerHeight = deskContainer.clientHeight;
+    if (!containerWidth || !containerHeight) return;
+
+    ensureDeskStageBase(containerWidth, containerHeight);
+
+    const scale = Math.min(
+        containerWidth / DESK_STAGE.baseWidth,
+        containerHeight / DESK_STAGE.baseHeight
+    );
+
+    const scaledWidth = DESK_STAGE.baseWidth * scale;
+    const scaledHeight = DESK_STAGE.baseHeight * scale;
+    const offsetY = containerHeight * DESK_STAGE.offsetY;
+
+    deskStage.style.transform = `scale(${scale})`;
+    deskStage.style.left = `${(containerWidth - scaledWidth) / 2}px`;
+    deskStage.style.top = `${(containerHeight - scaledHeight) / 2 - offsetY}px`;
+}
+
+window.addEventListener('resize', updateDeskStageScale);
+updateDeskStageScale();
+
 function renderDesk(participants) {
-    if (!desk) return;
-    desk.innerHTML = '';
+    if (!deskStage) return;
+    updateDeskStageScale();
+    deskStage.innerHTML = '';
 
     // 1. Render Desk
     const deskEl = document.createElement('div');
     deskEl.className = 'composited-element layer-desk';
-    deskEl.style.left = `${DESK_DATA.x * 100}%`;
-    deskEl.style.top = `${DESK_DATA.y * 100}%`;
+    deskEl.style.left = `${DESK_DATA.x * DESK_STAGE.baseWidth}px`;
+    deskEl.style.top = `${DESK_DATA.y * DESK_STAGE.baseHeight}px`;
     deskEl.style.transform = `translate(-50%, -50%) scale(${DESK_DATA.scale})`;
 
     const deskImg = document.createElement('img');
     deskImg.src = '/assets/desk.png';
     deskImg.className = 'desk-img';
     deskEl.appendChild(deskImg);
-    desk.appendChild(deskEl);
+    deskStage.appendChild(deskEl);
 
     // 2. Render Students
     STUDENT_DATA.forEach((data, index) => {
@@ -263,8 +299,8 @@ function renderDesk(participants) {
         const absX = DESK_DATA.x + data.x;
         const absY = DESK_DATA.y + data.y;
 
-        studentEl.style.left = `${absX * 100}%`;
-        studentEl.style.top = `${absY * 100}%`;
+        studentEl.style.left = `${absX * DESK_STAGE.baseWidth}px`;
+        studentEl.style.top = `${absY * DESK_STAGE.baseHeight}px`;
         // Container: Only scale, NO flip
         studentEl.style.transform = `translate(-50%, -50%) scale(${data.scale})`;
         studentEl.setAttribute('data-nickname', p.nickname); // Set for finding later
@@ -290,7 +326,7 @@ function renderDesk(participants) {
 
         studentEl.appendChild(vid);
         studentEl.appendChild(label);
-        desk.appendChild(studentEl);
+        deskStage.appendChild(studentEl);
     });
 }
 
