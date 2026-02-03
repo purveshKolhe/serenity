@@ -22,6 +22,7 @@ const pauseTimerBtn = document.getElementById('pause-timer');
 const resetTimerBtn = document.getElementById('reset-timer');
 const modeBtns = document.querySelectorAll('.mode-btn');
 const notifSound = document.getElementById('notif-sound');
+if (notifSound) notifSound.volume = 0.5;
 
 // Validation
 if (!user || !roomId) {
@@ -266,6 +267,7 @@ function renderDesk(participants) {
         studentEl.style.top = `${absY * 100}%`;
         // Container: Only scale, NO flip
         studentEl.style.transform = `translate(-50%, -50%) scale(${data.scale})`;
+        studentEl.setAttribute('data-nickname', p.nickname); // Set for finding later
 
         // --- ASSET MAPPING ---
         const vidNum = AVATAR_TO_VID[p.avatar] || 1; // Fallback to 1
@@ -567,6 +569,13 @@ chatInput.addEventListener('keypress', (e) => {
 
 // Receive new messages
 socket.on('new-message', (msg) => {
+    // Play notification sound
+    if (notifSound) {
+        notifSound.currentTime = 0;
+        notifSound.play().catch(() => { });
+    }
+
+    // 1. Add to Sidebar Chat
     const msgDiv = document.createElement('div');
     msgDiv.className = 'chat-message';
     msgDiv.innerHTML = `
@@ -578,7 +587,32 @@ socket.on('new-message', (msg) => {
     `;
     chatMessages.appendChild(msgDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    // 2. Show Cloud Bubble above Avatar
+    showChatBubble(msg.nickname, msg.text);
 });
+
+function showChatBubble(nickname, text) {
+    // Find the student element
+    const studentEl = document.querySelector(`.composited-element[data-nickname="${nickname}"]`);
+    if (!studentEl) return;
+
+    // Remove existing bubble if any
+    const existing = studentEl.querySelector('.chat-cloud');
+    if (existing) existing.remove();
+
+    // Create cloud
+    const cloud = document.createElement('div');
+    cloud.className = 'chat-cloud';
+    cloud.innerText = text;
+
+    studentEl.appendChild(cloud);
+
+    // Fade out and remove after 5s
+    setTimeout(() => {
+        cloud.remove();
+    }, 5000);
+}
 
 // Quick Reactions
 reactionBtns.forEach(btn => {

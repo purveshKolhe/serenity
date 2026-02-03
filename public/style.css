@@ -23,7 +23,7 @@
 body {
     margin: 0;
     padding: 0;
-    font-family: 'Quicksand', sans-serif;
+    font-family: 'Sour Gummy', sans-serif;
     color: var(--text-main);
     background: var(--theme-bg);
     height: 100vh;
@@ -39,7 +39,7 @@ h3,
 .brand-font,
 .room-title,
 .btn-primary {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Agbalumo', system-ui;
 }
 
 .hidden {
@@ -224,16 +224,83 @@ h3,
 
 .student-label {
     position: absolute;
-    top: -50px;
+    top: -40px;
     background: rgba(255, 255, 255, 0.9);
-    padding: 6px 14px;
-    border-radius: 12px;
-    font-size: 1.3rem;
+    padding: 10px 22px;
+    border-radius: 15px;
+    font-size: 1.6rem;
     font-weight: 800;
     color: #222;
     pointer-events: auto;
-    /* No transform needed as we wont flip container */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1001;
+    font-family: "Amarante", serif;
+}
+
+/* Chat Cloud Bubble */
+.chat-cloud {
+    position: absolute;
+    bottom: calc(100% + 40px);
+    /* 20px higher than previous 20px */
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    padding: 20px 35px;
+    /* Much bigger */
+    border-radius: 40px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+    font-family: "Delicious Handrawn", cursive;
+    font-weight: 700;
+    font-size: 1.8rem;
+    /* Larger text */
+    color: #333;
+    min-width: 180px;
+    /* Bigger */
+    max-width: 350px;
+    /* Bigger */
+    text-align: center;
+    z-index: 3000;
+    opacity: 0;
+    animation: cloudPop 5s forwards;
+    pointer-events: none;
+    word-wrap: break-word;
+}
+
+.chat-cloud::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 10px;
+    border-style: solid;
+    border-color: white transparent transparent transparent;
+}
+
+@keyframes cloudPop {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, 20px) scale(0.8);
+    }
+
+    10% {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1.1);
+    }
+
+    15% {
+        transform: translate(-50%, 0) scale(1);
+    }
+
+    90% {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -20px) scale(0.9);
+    }
 }
 
 /* Z-Index Layers */
