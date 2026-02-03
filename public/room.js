@@ -206,63 +206,123 @@ saveDurationsBtn.addEventListener('click', () => {
 });
 
 
+// --- COMPOSITING METADATA ---
+const DESK_DATA = { id: "desk", x: 0.5045, y: 0.8131, scale: 0.452, zIndex: 6 };
+const STUDENT_DATA = [
+    { id: "1", x: 0.0834, y: -0.1103, scale: 0.3757, zIndex: 1 },
+    { id: "6s", x: -0.1602, y: -0.0318, scale: 0.4113, zIndex: 4 },
+    { id: "1", x: -0.0673, y: -0.1023, scale: 0.3883, zIndex: 2 },
+    { id: "6s", x: 0.1643, y: -0.0266, scale: 0.4205, zIndex: 2 }
+];
+
+let VID_FILES = [];
+
+// Fetch sorted vids list once
+fetch('/api/vids')
+    .then(r => r.json())
+    .then(files => {
+        VID_FILES = files;
+        console.log("Video Mapping Loaded:", VID_FILES);
+    });
+
+function getVidFileById(id) {
+    if (VID_FILES.length === 0) return null;
+
+    // Parse ID: "6s" -> num=6, isSitting=true
+    const isSitting = id.endsWith('s');
+    const numStr = id.replace('s', '');
+    const num = parseInt(numStr, 10);
+
+    if (isNaN(num)) return VID_FILES[0]; // Fallback
+
+    // Calculate Index: (Num-1)*2 + (isSitting ? 1 : 0)
+    // Pair 1: Index 0, 1. Pair 2: Index 2, 3.
+    const index = (num - 1) * 2 + (isSitting ? 1 : 0);
+
+    // Safety wrap if we run out of pairs
+    const safeIndex = index % VID_FILES.length;
+
+    return VID_FILES[safeIndex];
+}
+
 function renderDesk(participants) {
-    desk.innerHTML = ''; // Clear previous state
+    if (!desk) return; // Safety check
+    desk.innerHTML = '';
 
-    // We have 4 slots max
-    for (let i = 0; i < 4; i++) {
-        const seat = document.createElement('div');
-        seat.className = 'seat';
+    // 1. Render Desk
+    const deskEl = document.createElement('div');
+    deskEl.className = 'composited-element layer-desk';
+    deskEl.style.left = `${DESK_DATA.x * 100}%`;
+    deskEl.style.top = `${DESK_DATA.y * 100}%`;
+    deskEl.style.transform = `translate(-50%, -50%) scale(${DESK_DATA.scale})`;
 
-        if (participants[i]) {
-            // Occupied Seat
-            const p = participants[i];
+    const deskImg = document.createElement('img');
+    deskImg.src = '/assets/desk.png';
+    deskImg.className = 'desk-img';
+    deskEl.appendChild(deskImg);
+    desk.appendChild(deskEl);
 
-            const img = document.createElement('img');
-            img.src = `/avatars/${p.avatar}`;
-            img.className = 'avatar-display'; // Removed 'floating' class
-            img.alt = p.nickname;
+    // 2. Render Students
+    STUDENT_DATA.forEach((data, index) => {
+        if (!participants[index]) return; // Only render occupied slots
+        const p = participants[index];
 
-            // Removed random animation delay for solid sitting look
+        const studentEl = document.createElement('div');
 
-            const label = document.createElement('div');
-            label.className = 'avatar-label';
-            label.innerText = p.nickname;
+        // Determine Layer based on ID suffix
+        // "n" -> Laptop (Behind), "ns" -> Book (Front)
+        // IDs are "1" (assume 1n) and "6s".
+        const isLaptop = !data.id.endsWith('s');
+        studentEl.className = `composited-element ${isLaptop ? 'layer-student-back' : 'layer-student-front'}`;
 
-            // Level Badge
-            const levelBadge = document.createElement('div');
-            levelBadge.className = 'avatar-level-badge';
-            levelBadge.innerText = `Lvl ${p.level || 1}`;
+        // Coordinates: Relative to Table
+        // AbsX = DeskX + StudentX
+        const absX = DESK_DATA.x + data.x;
+        const absY = DESK_DATA.y + data.y;
 
-            // Handle Z-Index for "Sitting" look via data-index
-            seat.setAttribute('data-index', i);
+        studentEl.style.left = `${absX * 100}%`;
+        studentEl.style.top = `${absY * 100}%`;
 
-            // Highlight "You"
-            if (p.nickname === user.nickname) {
-                label.style.color = 'var(--primary-dark)';
-                label.innerText += ' (You)';
-            }
+        // Transforms: Scale + Flip
+        let transform = `translate(-50%, -50%) scale(${data.scale})`;
 
-            // Studying Prop (The secret to 'studying look')
-            const prop = document.createElement('div');
-            prop.className = 'studying-prop';
-            // Alternating accessories based on seat index for variety
-            // 0: Laptop, 1: Book, 2: Writing, 3: Tablet/Laptop
-            const props = ['💻', '📖', '📝', '📠'];
-            prop.innerText = props[i % props.length];
-
-            seat.appendChild(img);
-            seat.appendChild(prop); // Added Prop
-            seat.appendChild(label);
-            seat.appendChild(levelBadge);
-        } else {
-            // Empty Seat
-            seat.setAttribute('data-index', i);
-            seat.style.opacity = '0.3';
+        // Flip Rule: If student.x > 0 -> flip
+        // (Assuming x>0 means "Right side of desk", needing to face inward or just symmetry)
+        if (data.x > 0) {
+            transform += ' scaleX(-1)';
         }
 
-        desk.appendChild(seat);
-    }
+        studentEl.style.transform = transform;
+
+        // Content
+        // Video/Image
+        const vid = document.createElement('img'); // Using IMG for now as "video" placeholder
+        // Construct filename: 1 -> 1.png, 6s -> 6s.png
+        // If files missing, this will break image. I'll stick to logic.
+        // Determine Asset File from Mapping Logic
+        const fileName = getVidFileById(data.id);
+
+        if (fileName) {
+            vid.src = `/vids/${fileName}`;
+        } else {
+            // Fallback if list not loaded yet or empty
+            vid.src = `/avatars/${p.avatar}`;
+            vid.className = 'avatar-display'; // keep standard class for fallback
+        }
+
+        if (fileName) vid.className = 'student-video';
+
+        // Label
+        const label = document.createElement('div');
+        label.className = 'student-label';
+        label.innerText = p.nickname;
+        // Counter-flip label if student is flipped
+        if (data.x > 0) label.style.transform = "scaleX(-1)";
+
+        studentEl.appendChild(vid);
+        studentEl.appendChild(label);
+        desk.appendChild(studentEl);
+    });
 }
 
 // Placeholder listeners for other buttons

@@ -182,96 +182,84 @@ h3,
 }
 
 /* Desk Area */
+/* --- COMPOSITING SYSTEM --- */
 .desk-container {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    z-index: 1;
-    perspective: 1000px;
-    padding: 0;
-    /* Removing padding to allow precise positioning */
-}
-
-.desk-surface {
-    width: 800px;
-    height: 500px;
-    background-image: url('/assets/desk.png');
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center bottom;
-    background-color: transparent;
-    /* Remove old glass bg */
-    border: none;
-    /* Remove old border */
-    box-shadow: none;
-    /* Remove old shadow */
-    display: block;
-    /* Remove grid */
-    position: relative;
-}
-
-.seat {
     position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    /* Let clicks pass through to background if needed */
+    overflow: hidden;
+}
+
+/* The Anchors are where we Position the Elements (Center Point) */
+.composited-element {
+    position: absolute;
+    transform-origin: center center;
+    /* transition: all 0.5s ease-out; */
+    /* removed for strict positioning */
     display: flex;
     flex-direction: column;
     align-items: center;
-    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    justify-content: center;
 }
 
-/* Position seats relative to the desk.png chairs */
-.seat[data-index="0"] {
-    bottom: 80px;
-    left: 50px;
+.desk-img {
+    width: auto;
+    height: auto;
+    max-width: none;
+    /* Prevent constraint */
+    display: block;
 }
 
-/* Far Left Chair */
-.seat[data-index="1"] {
-    bottom: 180px;
-    left: 280px;
-    z-index: -1;
+.student-video {
+    width: auto;
+    height: auto;
+    max-width: none;
+    display: block;
+    /* Scaling handled by JS transform */
 }
 
-/* Back Left */
-.seat[data-index="2"] {
-    bottom: 180px;
-    right: 280px;
-    z-index: -1;
+.student-label {
+    position: absolute;
+    top: -50px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #222;
+    pointer-events: auto;
+    /* No transform needed as we wont flip container */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Back Right */
-.seat[data-index="3"] {
-    bottom: 80px;
-    right: 50px;
+/* Z-Index Layers */
+.layer-bg {
+    z-index: 1;
 }
 
-/* Far Right Chair */
-
-
-/* Sitting Logic: Back seats look slightly cut off to simulate sitting behind table */
-.seat[data-index="1"] .avatar-display,
-.seat[data-index="2"] .avatar-display {
-    mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+.layer-student-back {
+    z-index: 10;
 }
 
-.avatar-display {
-    width: 140px;
-    height: 140px;
-    object-fit: contain;
-    margin-bottom: -10px;
-    /* Pull closer to chair */
-    filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.2));
-    border: none;
-    border-radius: 0;
-    background: transparent;
-    /* No animation for planted look */
+.layer-desk {
+    z-index: 100;
+    /* Table above all */
 }
 
-.seat[data-index="1"] .avatar-display,
-.seat[data-index="3"] .avatar-display {
-    animation-delay: 1s;
+.layer-student-front {
+    z-index: 30;
+}
+
+/* Hide original HTML specific styles */
+.desk-surface,
+.seat,
+.avatar-display,
+.level-badge {
+    display: none;
 }
 
 /* Idle Animations */
