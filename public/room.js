@@ -44,9 +44,21 @@ const roomLayout = document.querySelector('.room-layout');
 // Background Cycler
 const bgList = ['forest.png', 'hogwarts.png', 'library.png', 'stars.png', 'tech.png', 'valley.png'];
 let currentBgIndex = 0;
+
+function getBackgroundPath(filename) {
+    const isMobile = window.innerWidth <= 768;
+    // Skip if it doesn't exist in mobile_bgs (e.g. ones that failed to generate)
+    const mobileAvailable = ['forest.png', 'hogwarts.png', 'library.png', 'stars.png', 'tech.png', 'valley.png'];
+    if (isMobile && mobileAvailable.includes(filename)) {
+        return `/mobile_bgs/${filename}`;
+    }
+    return `/bgs/${filename}`;
+}
+
 themeBtn.addEventListener('click', () => {
     currentBgIndex = (currentBgIndex + 1) % bgList.length;
-    roomLayout.style.backgroundImage = `url('/bgs/${bgList[currentBgIndex]}')`;
+    const bgUrl = getBackgroundPath(bgList[currentBgIndex]);
+    roomLayout.style.backgroundImage = `url('${bgUrl}')`;
 });
 
 exitBtn.addEventListener('click', () => {
@@ -82,7 +94,7 @@ function setDynamicBackground(roomName) {
 
     // Pick background deterministically
     const index = seed % backgrounds.length;
-    const bgUrl = `/bgs/${backgrounds[index]}`;
+    const bgUrl = getBackgroundPath(backgrounds[index]);
 
     // Apply
     const img = new Image();
