@@ -301,22 +301,76 @@ h3,
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-/* Bottom Controls */
-/* Bottom Controls */
+/* Bottom Controls -> Left Sidebar */
 .room-controls {
     position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(15px);
-    padding: 12px 24px;
+    padding: 24px 12px;
     border-radius: 40px;
     display: flex;
+    flex-direction: column;
+    /* Vertical */
     gap: 20px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
     border: 2px solid white;
     z-index: 1000;
+}
+
+/* Tiny Centered Timer */
+#tiny-timer {
+    position: fixed;
+    top: 100px;
+    /* Below header */
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 8px 24px;
+    border-radius: 20px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.8rem;
+    color: var(--primary-dark);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border: 2px solid white;
+    z-index: 900;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    opacity: 0;
+    transition: opacity 0.5s;
+}
+
+#tiny-timer.visible {
+    opacity: 1;
+}
+
+/* Studying Prop (Laptop/Book) */
+.studying-prop {
+    position: absolute;
+    bottom: -5px;
+    /* Adjust to overlap bottom of avatar */
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 40px;
+    z-index: 5;
+    /* In front of avatar(2) and desk(1) */
+    filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.15));
+}
+
+/* Specific Prop Positioning per Seat because of perspective */
+.seat[data-index="0"] .studying-prop,
+.seat[data-index="3"] .studying-prop {
+    bottom: 10px;
+}
+
+.seat[data-index="1"] .studying-prop,
+.seat[data-index="2"] .studying-prop {
+    bottom: 20px;
+    z-index: 5;
 }
 
 .control-btn {

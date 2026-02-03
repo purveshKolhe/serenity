@@ -124,7 +124,20 @@ function updateTimerUI(state) {
     const timeLeft = state.timeLeft || 0;
     const mins = Math.floor(timeLeft / 60);
     const secs = timeLeft % 60;
-    timerDisplay.innerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    // Tiny Timer update
+    const formattedTime = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    timerDisplay.innerText = formattedTime;
+
+    // Tiny Persistent Timer
+    const tinyTimer = document.getElementById('tiny-timer');
+    if (tinyTimer) {
+        tinyTimer.innerText = formattedTime + (state.mode === 'focus' ? ' 🍅' : ' ☕');
+        if (state.isRunning || state.isPaused) { // Show if running or paused (active session)
+            tinyTimer.classList.add('visible');
+        } else {
+            tinyTimer.classList.remove('visible');
+        }
+    }
 
     // Update mode display
     let modeText = 'Focus Mode 🍅';
@@ -230,7 +243,16 @@ function renderDesk(participants) {
                 label.innerText += ' (You)';
             }
 
+            // Studying Prop (The secret to 'studying look')
+            const prop = document.createElement('div');
+            prop.className = 'studying-prop';
+            // Alternating accessories based on seat index for variety
+            // 0: Laptop, 1: Book, 2: Writing, 3: Tablet/Laptop
+            const props = ['💻', '📖', '📝', '📠'];
+            prop.innerText = props[i % props.length];
+
             seat.appendChild(img);
+            seat.appendChild(prop); // Added Prop
             seat.appendChild(label);
             seat.appendChild(levelBadge);
         } else {
