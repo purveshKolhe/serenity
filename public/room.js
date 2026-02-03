@@ -247,7 +247,8 @@ const DESK_STAGE = {
     fallbackWidth: 1366,
     fallbackHeight: 768,
     storageKey: 'serenity_desk_base',
-    mobileScaleBoost: 1.75
+    mobileScaleBoost: 1.75,
+    mobileUpShift: 0.08
 };
 const DESK_DATA = { id: "desk", x: 0.5045, y: 0.8131, scale: 0.452, zIndex: 6 };
 const STUDENT_DATA = [
@@ -337,7 +338,8 @@ function updateDeskStageScale() {
     const heightRatio = Math.min(1, containerHeight / DESK_STAGE.baseHeight);
     let scale = Math.min(widthRatio, heightRatio);
 
-    if (containerWidth < DESK_STAGE.desktopMinWidth) {
+    const isMobile = containerWidth < DESK_STAGE.desktopMinWidth;
+    if (isMobile) {
         const boost = 1 + (1 - widthRatio) * DESK_STAGE.mobileScaleBoost;
         scale = Math.min(1, heightRatio, widthRatio * boost);
     }
@@ -346,7 +348,10 @@ function updateDeskStageScale() {
     const scaledHeight = DESK_STAGE.baseHeight * scale;
     const offsetY = containerHeight * DESK_STAGE.offsetY;
     const maxDownShift = DESK_STAGE.baseHeight * DESK_STAGE.downShift;
-    const downShift = (1 - widthRatio) * maxDownShift;
+    let downShift = (1 - widthRatio) * maxDownShift;
+    if (isMobile) {
+        downShift -= containerHeight * DESK_STAGE.mobileUpShift;
+    }
 
     deskStage.style.transform = `scale(${scale})`;
     deskStage.style.left = `${(containerWidth - scaledWidth) / 2}px`;
