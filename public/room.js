@@ -209,7 +209,12 @@ saveDurationsBtn.addEventListener('click', () => {
 
 
 // --- COMPOSITING METADATA ---
-const DESK_STAGE = { baseWidth: null, baseHeight: null, offsetY: 0.055 };
+const DESK_STAGE = {
+    baseWidth: null,
+    baseHeight: null,
+    offsetY: 0.055,
+    downShift: 0.25
+};
 const DESK_DATA = { id: "desk", x: 0.5045, y: 0.8131, scale: 0.452, zIndex: 6 };
 const STUDENT_DATA = [
     { id: "1", x: 0.0834, y: -0.1103, scale: 0.3757, zIndex: 1 },
@@ -260,14 +265,21 @@ function updateDeskStageScale() {
     const scaledWidth = DESK_STAGE.baseWidth * scale;
     const scaledHeight = DESK_STAGE.baseHeight * scale;
     const offsetY = containerHeight * DESK_STAGE.offsetY;
+    const widthRatio = Math.min(1, containerWidth / DESK_STAGE.baseWidth);
+    const maxDownShift = DESK_STAGE.baseHeight * DESK_STAGE.downShift;
+    const downShift = (1 - widthRatio) * maxDownShift;
 
     deskStage.style.transform = `scale(${scale})`;
     deskStage.style.left = `${(containerWidth - scaledWidth) / 2}px`;
-    deskStage.style.top = `${(containerHeight - scaledHeight) / 2 - offsetY}px`;
+    deskStage.style.top = `${(containerHeight - scaledHeight) / 2 - offsetY + downShift}px`;
 }
 
 window.addEventListener('resize', updateDeskStageScale);
 updateDeskStageScale();
+if (deskContainer && 'ResizeObserver' in window) {
+    const deskObserver = new ResizeObserver(() => updateDeskStageScale());
+    deskObserver.observe(deskContainer);
+}
 
 function renderDesk(participants) {
     if (!deskStage) return;
