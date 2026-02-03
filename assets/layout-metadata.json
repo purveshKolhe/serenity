@@ -1,0 +1,46 @@
+{
+  "background": {
+    "id": "cool"
+  },
+  "table": {
+    "id": "desk",
+    "x": 0.5045,
+    "y": 0.8131,
+    "scale": 0.452,
+    "zIndex": 6
+  },
+  "students": [
+    {
+      "id": "1",
+      "x": 0.0834,
+      "y": -0.1103,
+      "scale": 0.3757,
+      "flipped": false,
+      "zIndex": 1
+    },
+    {
+      "id": "6s",
+      "x": -0.1602,
+      "y": -0.0318,
+      "scale": 0.4113,
+      "flipped": false,
+      "zIndex": 4
+    },
+    {
+      "id": "1",
+      "x": -0.0673,
+      "y": -0.1023,
+      "scale": 0.3883,
+      "flipped": true,
+      "zIndex": 2
+    },
+    {
+      "id": "6s",
+      "x": 0.1643,
+      "y": -0.0266,
+      "scale": 0.4205,
+      "flipped": true,
+      "zIndex": 2
+    }
+  ]
+}
