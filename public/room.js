@@ -241,7 +241,11 @@ const DESK_STAGE = {
     baseWidth: null,
     baseHeight: null,
     offsetY: 0.055,
-    downShift: 0.25
+    downShift: 0.25,
+    desktopMinWidth: 1100,
+    fallbackWidth: 1366,
+    fallbackHeight: 768,
+    storageKey: 'serenity_desk_base'
 };
 const DESK_DATA = { id: "desk", x: 0.5045, y: 0.8131, scale: 0.452, zIndex: 6 };
 const STUDENT_DATA = [
@@ -269,12 +273,54 @@ const AVATAR_TO_VID = {
     'sunshine.png': 14
 };
 
+function loadDeskBase() {
+    try {
+        const raw = localStorage.getItem(DESK_STAGE.storageKey);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !parsed.width || !parsed.height) return null;
+        return parsed;
+    } catch (err) {
+        return null;
+    }
+}
+
+function saveDeskBase(width, height) {
+    try {
+        localStorage.setItem(DESK_STAGE.storageKey, JSON.stringify({ width, height }));
+    } catch (err) {
+        // Ignore storage errors
+    }
+}
+
+function setDeskStageSize(width, height) {
+    deskStage.style.width = `${width}px`;
+    deskStage.style.height = `${height}px`;
+}
+
 function ensureDeskStageBase(containerWidth, containerHeight) {
+    if (containerWidth >= DESK_STAGE.desktopMinWidth) {
+        if (DESK_STAGE.baseWidth !== containerWidth || DESK_STAGE.baseHeight !== containerHeight) {
+            DESK_STAGE.baseWidth = containerWidth;
+            DESK_STAGE.baseHeight = containerHeight;
+            setDeskStageSize(DESK_STAGE.baseWidth, DESK_STAGE.baseHeight);
+            saveDeskBase(DESK_STAGE.baseWidth, DESK_STAGE.baseHeight);
+        }
+        return;
+    }
+
     if (DESK_STAGE.baseWidth && DESK_STAGE.baseHeight) return;
-    DESK_STAGE.baseWidth = containerWidth;
-    DESK_STAGE.baseHeight = containerHeight;
-    deskStage.style.width = `${DESK_STAGE.baseWidth}px`;
-    deskStage.style.height = `${DESK_STAGE.baseHeight}px`;
+
+    const stored = loadDeskBase();
+    if (stored) {
+        DESK_STAGE.baseWidth = stored.width;
+        DESK_STAGE.baseHeight = stored.height;
+    } else {
+        DESK_STAGE.baseWidth = DESK_STAGE.fallbackWidth;
+        DESK_STAGE.baseHeight = DESK_STAGE.fallbackHeight;
+    }
+
+    setDeskStageSize(DESK_STAGE.baseWidth, DESK_STAGE.baseHeight);
 }
 
 function updateDeskStageScale() {
@@ -285,15 +331,13 @@ function updateDeskStageScale() {
 
     ensureDeskStageBase(containerWidth, containerHeight);
 
-    const scale = Math.min(
-        containerWidth / DESK_STAGE.baseWidth,
-        containerHeight / DESK_STAGE.baseHeight
-    );
+    const widthRatio = Math.min(1, containerWidth / DESK_STAGE.baseWidth);
+    const heightRatio = Math.min(1, containerHeight / DESK_STAGE.baseHeight);
+    const scale = Math.min(widthRatio, heightRatio);
 
     const scaledWidth = DESK_STAGE.baseWidth * scale;
     const scaledHeight = DESK_STAGE.baseHeight * scale;
     const offsetY = containerHeight * DESK_STAGE.offsetY;
-    const widthRatio = Math.min(1, containerWidth / DESK_STAGE.baseWidth);
     const maxDownShift = DESK_STAGE.baseHeight * DESK_STAGE.downShift;
     const downShift = (1 - widthRatio) * maxDownShift;
 
