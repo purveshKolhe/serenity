@@ -25,6 +25,7 @@ if (notifSound) notifSound.volume = 0.4; // 80% of 0.5
 
 // === WINDOW MANAGER GLOBALS (must be defined early) ===
 let highestZ = 2000;
+
 function bringToFront(win) {
     if (!win) return;
     highestZ++;
@@ -130,11 +131,11 @@ socket.on('timer-update', (timerState) => {
 socket.on('timer-finished', (mode) => {
     // Play notification sound
     notifSound.currentTime = 0;
-    notifSound.play().catch(() => { }); // Catch autoplay errors
+    notifSound.play().catch(() => {}); // Catch autoplay errors
 
-    const message = mode === 'focus'
-        ? "Focus time done! Time for a break 🍵"
-        : "Break's over! Back to the grind 💪";
+    const message = mode === 'focus' ?
+        "Focus time done! Time for a break 🍵" :
+        "Break's over! Back to the grind 💪";
 
     // Use toast + sound, or Modal? Modal is better for timer end.
     showAlert('Timer Finished! ⏰', message);
@@ -245,7 +246,8 @@ const DESK_STAGE = {
     desktopMinWidth: 1100,
     fallbackWidth: 1366,
     fallbackHeight: 768,
-    storageKey: 'serenity_desk_base'
+    storageKey: 'serenity_desk_base',
+    mobileScaleBoost: 1.75
 };
 const DESK_DATA = { id: "desk", x: 0.5045, y: 0.8131, scale: 0.452, zIndex: 6 };
 const STUDENT_DATA = [
@@ -333,7 +335,12 @@ function updateDeskStageScale() {
 
     const widthRatio = Math.min(1, containerWidth / DESK_STAGE.baseWidth);
     const heightRatio = Math.min(1, containerHeight / DESK_STAGE.baseHeight);
-    const scale = Math.min(widthRatio, heightRatio);
+    let scale = Math.min(widthRatio, heightRatio);
+
+    if (containerWidth < DESK_STAGE.desktopMinWidth) {
+        const boost = 1 + (1 - widthRatio) * DESK_STAGE.mobileScaleBoost;
+        scale = Math.min(1, heightRatio, widthRatio * boost);
+    }
 
     const scaledWidth = DESK_STAGE.baseWidth * scale;
     const scaledHeight = DESK_STAGE.baseHeight * scale;
@@ -518,7 +525,7 @@ socket.on('quiz-feedback-v2', (data) => {
             selected.classList.add('correct');
             if (data.newScore !== undefined) quizScore.innerText = `Score: ${data.newScore}`;
             quizStatus.innerText = "Correct! 🎉";
-            notifSound.play().catch(() => { });
+            notifSound.play().catch(() => {});
             spawnConfetti();
         } else {
             selected.classList.add('wrong');
@@ -634,7 +641,7 @@ socket.on('update-tasks', (tasks) => {
 socket.on('task-completed-celebration', (taskText) => {
     // Play happy sound
     const audio = new Audio('/assets/notif.mp3');
-    audio.play().catch(() => { });
+    audio.play().catch(() => {});
 
     // Confetti explosion
     for (let i = 0; i < 30; i++) {
@@ -723,7 +730,10 @@ windows.forEach(win => {
 
 // 2. Draggable Utility
 function makeDraggable(element, handle) {
-    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    let pos1 = 0,
+        pos2 = 0,
+        pos3 = 0,
+        pos4 = 0;
 
     handle.onmousedown = dragMouseDown;
 
@@ -771,7 +781,7 @@ socket.on('new-message', (msg) => {
     // Play notification sound
     if (notifSound) {
         notifSound.currentTime = 0;
-        notifSound.play().catch(() => { });
+        notifSound.play().catch(() => {});
     }
 
     // 1. Add to Sidebar Chat
@@ -847,7 +857,7 @@ socket.on('player-leveled-up', (data) => {
     if (data.id === socket.id) {
         showAlert('Level Up! 🆙', `Congratulations! You reached Level ${data.newLevel}! 🎉`);
         spawnConfetti(50);
-        notifSound.play().catch(() => { });
+        notifSound.play().catch(() => {});
     } else {
         showToast(`${data.nickname} leveled up to Level ${data.newLevel}! 🔥`);
     }
