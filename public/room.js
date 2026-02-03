@@ -215,38 +215,26 @@ const STUDENT_DATA = [
     { id: "6s", x: 0.1643, y: -0.0266, scale: 0.4205, zIndex: 2 }
 ];
 
-let VID_FILES = [];
-
-// Fetch sorted vids list once
-fetch('/api/vids')
-    .then(r => r.json())
-    .then(files => {
-        VID_FILES = files;
-        console.log("Video Mapping Loaded:", VID_FILES);
-    });
-
-function getVidFileById(id) {
-    if (VID_FILES.length === 0) return null;
-
-    // Parse ID: "6s" -> num=6, isSitting=true
-    const isSitting = id.endsWith('s');
-    const numStr = id.replace('s', '');
-    const num = parseInt(numStr, 10);
-
-    if (isNaN(num)) return VID_FILES[0]; // Fallback
-
-    // Calculate Index: (Num-1)*2 + (isSitting ? 1 : 0)
-    // Pair 1: Index 0, 1. Pair 2: Index 2, 3.
-    const index = (num - 1) * 2 + (isSitting ? 1 : 0);
-
-    // Safety wrap if we run out of pairs
-    const safeIndex = index % VID_FILES.length;
-
-    return VID_FILES[safeIndex];
-}
+// --- AVATAR TO VID MAPPING ---
+const AVATAR_TO_VID = {
+    'calm_nerd.png': 1,
+    'confident_studier.png': 2,
+    'cozy_bookworm.png': 3,
+    'energetic_bestie.png': 4,
+    'energetic_friend.png': 5,
+    'focus_mode.png': 6,
+    'gamer_guy.png': 7,
+    'hoodie_pal.png': 8,
+    'minimal_clean_girl.png': 9,
+    'night_owl.png': 10,
+    'Quiet_topper.png': 11,
+    'soft_aesthetic_girl.png': 12,
+    'soft_smile.png': 13,
+    'sunshine.png': 14
+};
 
 function renderDesk(participants) {
-    if (!desk) return; // Safety check
+    if (!desk) return;
     desk.innerHTML = '';
 
     // 1. Render Desk
@@ -264,60 +252,39 @@ function renderDesk(participants) {
 
     // 2. Render Students
     STUDENT_DATA.forEach((data, index) => {
-        if (!participants[index]) return; // Only render occupied slots
+        if (!participants[index]) return;
         const p = participants[index];
 
         const studentEl = document.createElement('div');
-
-        // Determine Layer based on ID suffix
-        // "n" -> Laptop (Behind), "ns" -> Book (Front)
-        // IDs are "1" (assume 1n) and "6s".
         const isLaptop = !data.id.endsWith('s');
         studentEl.className = `composited-element ${isLaptop ? 'layer-student-back' : 'layer-student-front'}`;
 
-        // Coordinates: Relative to Table
-        // AbsX = DeskX + StudentX
         const absX = DESK_DATA.x + data.x;
         const absY = DESK_DATA.y + data.y;
 
         studentEl.style.left = `${absX * 100}%`;
         studentEl.style.top = `${absY * 100}%`;
+        // Container: Only scale, NO flip
+        studentEl.style.transform = `translate(-50%, -50%) scale(${data.scale})`;
 
-        // Transforms: Scale + Flip
-        let transform = `translate(-50%, -50%) scale(${data.scale})`;
+        // --- ASSET MAPPING ---
+        const vidNum = AVATAR_TO_VID[p.avatar] || 1; // Fallback to 1
+        const isSitting = data.id.endsWith('s');
+        const vidFileName = isSitting ? `${vidNum}s.apng` : `${vidNum}.apng`;
 
-        // Flip Rule: If student.x > 0 -> flip
-        // (Assuming x>0 means "Right side of desk", needing to face inward or just symmetry)
+        const vid = document.createElement('img');
+        vid.src = `/vids/${vidFileName}`;
+        vid.className = 'student-video';
+
+        // Flip IMAGE only (not container)
         if (data.x > 0) {
-            transform += ' scaleX(-1)';
+            vid.style.transform = 'scaleX(-1)';
         }
 
-        studentEl.style.transform = transform;
-
-        // Content
-        // Video/Image
-        const vid = document.createElement('img'); // Using IMG for now as "video" placeholder
-        // Construct filename: 1 -> 1.png, 6s -> 6s.png
-        // If files missing, this will break image. I'll stick to logic.
-        // Determine Asset File from Mapping Logic
-        const fileName = getVidFileById(data.id);
-
-        if (fileName) {
-            vid.src = `/vids/${fileName}`;
-        } else {
-            // Fallback if list not loaded yet or empty
-            vid.src = `/avatars/${p.avatar}`;
-            vid.className = 'avatar-display'; // keep standard class for fallback
-        }
-
-        if (fileName) vid.className = 'student-video';
-
-        // Label
+        // Label (No flip needed since container is not flipped)
         const label = document.createElement('div');
         label.className = 'student-label';
         label.innerText = p.nickname;
-        // Counter-flip label if student is flipped
-        if (data.x > 0) label.style.transform = "scaleX(-1)";
 
         studentEl.appendChild(vid);
         studentEl.appendChild(label);
