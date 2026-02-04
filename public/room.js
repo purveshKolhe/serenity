@@ -43,13 +43,13 @@ roomNameDisplay.innerText = roomId;
 const roomLayout = document.querySelector('.room-layout');
 
 // Background Cycler
-const bgList = ['forest.png', 'hogwarts.png', 'library.png', 'stars.png', 'tech.png', 'valley.png'];
+const bgList = ['forest.webp', 'hogwarts.webp', 'library.webp', 'stars.webp', 'tech.webp', 'valley.webp'];
 let currentBgIndex = 0;
 
 function getBackgroundPath(filename) {
     const isMobile = window.innerWidth <= 768;
     // Skip if it doesn't exist in mobile_bgs (e.g. ones that failed to generate)
-    const mobileAvailable = ['forest.png', 'hogwarts.png', 'library.png', 'stars.png', 'tech.png', 'valley.png'];
+    const mobileAvailable = ['forest.webp', 'hogwarts.webp', 'library.webp', 'stars.webp', 'tech.webp', 'valley.webp'];
     if (isMobile && mobileAvailable.includes(filename)) {
         return `/mobile_bgs/${filename}`;
     }
@@ -57,8 +57,13 @@ function getBackgroundPath(filename) {
 }
 
 // Initial Background Load (Instant)
-const savedBg = localStorage.getItem(`serenity_bg_${roomId}`);
+let savedBg = localStorage.getItem(`serenity_bg_${roomId}`);
 if (savedBg) {
+    // Migration: If user had .png saved, swap to .webp
+    if (savedBg.endsWith('.png')) {
+        savedBg = savedBg.replace('.png', '.webp');
+        localStorage.setItem(`serenity_bg_${roomId}`, savedBg);
+    }
     roomLayout.style.backgroundImage = `url('${savedBg}')`;
     // Sync currentBgIndex
     const filename = savedBg.split('/').pop();
@@ -93,12 +98,12 @@ function getSeedFromString(str) {
 function setDynamicBackground(roomName) {
     // Preset Backgrounds
     const backgrounds = [
-        'forest.png',
-        'hogwarts.png',
-        'library.png',
-        'stars.png',
-        'tech.png',
-        'valley.png'
+        'forest.webp',
+        'hogwarts.webp',
+        'library.webp',
+        'stars.webp',
+        'tech.webp',
+        'valley.webp'
     ];
 
     // Stable Seed derived from Room Name
