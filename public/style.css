@@ -26,12 +26,33 @@ body {
     font-family: 'Sour Gummy', sans-serif;
     color: var(--text-main);
     background: var(--theme-bg);
-    height: 100vh;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    /* Prevent scrollbars */
 }
+
+/* Room Layout should stay fixed and non-scrollable on body */
+.room-layout-active {
+    overflow: hidden;
+    height: 100vh;
+    position: fixed;
+    width: 100%;
+}
+
+/* Allow scrolling on landing page (default) but keep it tidy on big screens */
+@media (min-width: 769px) {
+    body {
+        height: 100vh;
+        overflow: hidden;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 20px 0;
+    }
+}
+
 
 h1,
 h2,
