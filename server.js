@@ -120,8 +120,8 @@ io.on('connection', (socket) => {
                     if (room.timer.timeLeft > 0) {
                         room.timer.timeLeft--;
                     } else {
-                        clearInterval(room.timer.intervalId);
-                        room.timer.isRunning = false;
+
+
                         io.to(roomId).emit('timer-finished', room.timer.mode);
 
                         // Award XP
