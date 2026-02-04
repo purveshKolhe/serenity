@@ -960,30 +960,30 @@ function showConfirm(title, message, onConfirm) {
 const windowAdmin = document.getElementById('window-admin');
 
 // Disable Right Click (Context Menu)
-// document.addEventListener('contextmenu', (e) => e.preventDefault());
+document.addEventListener('contextmenu', (e) => e.preventDefault());
 
-// // Disable common DevTools shortcuts to discourage inspection
-// document.addEventListener('keydown', (e) => {
-//     // F12
-//     if (e.keyCode === 123) {
-//         e.preventDefault();
-//         return false;
-//     }
-//     // Ctrl+Shift+I (Inspect), Ctrl+Shift+J (Console), Ctrl+U (View Source)
-//     if (e.ctrlKey && (e.shiftKey && (e.keyCode === 73 || e.keyCode === 74) || e.keyCode === 85)) {
-//         e.preventDefault();
-//         return false;
-//     }
+// Disable common DevTools shortcuts to discourage inspection
+document.addEventListener('keydown', (e) => {
+    // F12
+    if (e.keyCode === 123) {
+        e.preventDefault();
+        return false;
+    }
+    // Ctrl+Shift+I (Inspect), Ctrl+Shift+J (Console), Ctrl+U (View Source)
+    if (e.ctrlKey && (e.shiftKey && (e.keyCode === 73 || e.keyCode === 74) || e.keyCode === 85)) {
+        e.preventDefault();
+        return false;
+    }
 
-//     // Secret Way: Ctrl + Shift + L
-//     if (e.ctrlKey && e.shiftKey && e.keyCode === 76) {
-//         if (windowAdmin) {
-//             windowAdmin.classList.remove('hidden');
-//             bringToFront(windowAdmin);
-//             showToast("🌸 Developer Access Granted");
-//         }
-//     }
-// });
+    // Secret Way: Ctrl + Shift + L
+    if (e.ctrlKey && e.shiftKey && e.keyCode === 76) {
+        if (windowAdmin) {
+            windowAdmin.classList.remove('hidden');
+            bringToFront(windowAdmin);
+            showToast("🌸 Developer Access Granted");
+        }
+    }
+});
 
 // Dev Tools Buttons
 document.getElementById('dev-levelup')?.addEventListener('click', () => {

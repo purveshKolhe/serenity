@@ -131,11 +131,11 @@ localStorage.removeItem('serenity_user');
 localStorage.removeItem('serenity_room');
 
 // --- SECURITY & DEV MODE ---
-// document.addEventListener('contextmenu', (e) => e.preventDefault());
-// document.addEventListener('keydown', (e) => {
-//     if (e.keyCode === 123) { e.preventDefault(); return false; }
-//     if (e.ctrlKey && (e.shiftKey && (e.keyCode === 73 || e.keyCode === 74) || e.keyCode === 85)) { e.preventDefault(); return false; }
-//     if (e.ctrlKey && e.shiftKey && e.keyCode === 76) {
-//         alert(" Secret Developer Mode Activated (Simulated)");
-//     }
-// });
+document.addEventListener('contextmenu', (e) => e.preventDefault());
+document.addEventListener('keydown', (e) => {
+    if (e.keyCode === 123) { e.preventDefault(); return false; }
+    if (e.ctrlKey && (e.shiftKey && (e.keyCode === 73 || e.keyCode === 74) || e.keyCode === 85)) { e.preventDefault(); return false; }
+    if (e.ctrlKey && e.shiftKey && e.keyCode === 76) {
+        alert(" Secret Developer Mode Activated (Simulated)");
+    }
+});
