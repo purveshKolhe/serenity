@@ -56,10 +56,21 @@ function getBackgroundPath(filename) {
     return `/bgs/${filename}`;
 }
 
+// Initial Background Load (Instant)
+const savedBg = localStorage.getItem(`serenity_bg_${roomId}`);
+if (savedBg) {
+    roomLayout.style.backgroundImage = `url('${savedBg}')`;
+    // Sync currentBgIndex
+    const filename = savedBg.split('/').pop();
+    const idx = bgList.indexOf(filename);
+    if (idx !== -1) currentBgIndex = idx;
+}
+
 themeBtn.addEventListener('click', () => {
     currentBgIndex = (currentBgIndex + 1) % bgList.length;
     const bgUrl = getBackgroundPath(bgList[currentBgIndex]);
     roomLayout.style.backgroundImage = `url('${bgUrl}')`;
+    localStorage.setItem(`serenity_bg_${roomId}`, bgUrl);
 });
 
 exitBtn.addEventListener('click', () => {
@@ -97,13 +108,15 @@ function setDynamicBackground(roomName) {
     const index = seed % backgrounds.length;
     const bgUrl = getBackgroundPath(backgrounds[index]);
 
-    // Apply
-    const img = new Image();
-    img.src = bgUrl;
-    img.onload = () => {
-        roomLayout.style.backgroundImage = `url('${bgUrl}')`;
-        localStorage.setItem(`serenity_bg_${roomName}`, bgUrl);
-    };
+    // Apply if not already set by manual override or previous session
+    if (!localStorage.getItem(`serenity_bg_${roomName}`)) {
+        const img = new Image();
+        img.src = bgUrl;
+        img.onload = () => {
+            roomLayout.style.backgroundImage = `url('${bgUrl}')`;
+            localStorage.setItem(`serenity_bg_${roomName}`, bgUrl);
+        };
+    }
 }
 
 socket.on('connect', () => {
@@ -131,7 +144,7 @@ socket.on('timer-update', (timerState) => {
 socket.on('timer-finished', (mode) => {
     // Play notification sound
     notifSound.currentTime = 0;
-    notifSound.play().catch(() => {}); // Catch autoplay errors
+    notifSound.play().catch(() => { }); // Catch autoplay errors
 
     const message = mode === 'focus' ?
         "Focus time done! Time for a break 🍵" :
@@ -530,7 +543,7 @@ socket.on('quiz-feedback-v2', (data) => {
             selected.classList.add('correct');
             if (data.newScore !== undefined) quizScore.innerText = `Score: ${data.newScore}`;
             quizStatus.innerText = "Correct! 🎉";
-            notifSound.play().catch(() => {});
+            notifSound.play().catch(() => { });
             spawnConfetti();
         } else {
             selected.classList.add('wrong');
@@ -646,7 +659,7 @@ socket.on('update-tasks', (tasks) => {
 socket.on('task-completed-celebration', (taskText) => {
     // Play happy sound
     const audio = new Audio('/assets/notif.mp3');
-    audio.play().catch(() => {});
+    audio.play().catch(() => { });
 
     // Confetti explosion
     for (let i = 0; i < 30; i++) {
@@ -733,14 +746,12 @@ windows.forEach(win => {
     }
 });
 
-// 2. Draggable Utility
+// 2. Draggable Utility (Mouse & Touch)
 function makeDraggable(element, handle) {
-    let pos1 = 0,
-        pos2 = 0,
-        pos3 = 0,
-        pos4 = 0;
+    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
 
     handle.onmousedown = dragMouseDown;
+    handle.ontouchstart = dragTouchStart;
 
     function dragMouseDown(e) {
         e.preventDefault();
@@ -748,6 +759,15 @@ function makeDraggable(element, handle) {
         pos4 = e.clientY;
         document.onmouseup = closeDragElement;
         document.onmousemove = elementDrag;
+        bringToFront(element);
+    }
+
+    function dragTouchStart(e) {
+        const touch = e.touches[0];
+        pos3 = touch.clientX;
+        pos4 = touch.clientY;
+        document.addEventListener('touchend', closeDragElement);
+        document.addEventListener('touchmove', elementTouchMove, { passive: false });
         bringToFront(element);
     }
 
@@ -761,9 +781,24 @@ function makeDraggable(element, handle) {
         element.style.left = (element.offsetLeft - pos1) + "px";
     }
 
+    function elementTouchMove(e) {
+        if (e.cancelable) e.preventDefault();
+        const touch = e.touches[0];
+        pos1 = pos3 - touch.clientX;
+        pos2 = pos4 - touch.clientY;
+        pos3 = touch.clientX;
+        pos4 = touch.clientY;
+        element.style.top = (element.offsetTop - pos2) + "px";
+        element.style.left = (element.offsetLeft - pos1) + "px";
+    }
+
     function closeDragElement() {
         document.onmouseup = null;
         document.onmousemove = null;
+        document.removeEventListener('touchend', closeDragElement);
+        document.removeEventListener('touchmove', elementTouchMove);
+        document.ontouchend = null;
+        document.ontouchmove = null;
     }
 }
 
@@ -786,7 +821,7 @@ socket.on('new-message', (msg) => {
     // Play notification sound
     if (notifSound) {
         notifSound.currentTime = 0;
-        notifSound.play().catch(() => {});
+        notifSound.play().catch(() => { });
     }
 
     // 1. Add to Sidebar Chat
@@ -862,7 +897,7 @@ socket.on('player-leveled-up', (data) => {
     if (data.id === socket.id) {
         showAlert('Level Up! 🆙', `Congratulations! You reached Level ${data.newLevel}! 🎉`);
         spawnConfetti(50);
-        notifSound.play().catch(() => {});
+        notifSound.play().catch(() => { });
     } else {
         showToast(`${data.nickname} leveled up to Level ${data.newLevel}! 🔥`);
     }
@@ -921,3 +956,54 @@ function showConfirm(title, message, onConfirm) {
     modalCancelBtn.classList.remove('hidden');
     modalOverlay.classList.remove('hidden');
 }
+// --- SECURITY & DEV MODE ---
+const windowAdmin = document.getElementById('window-admin');
+
+// Disable Right Click (Context Menu)
+// document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+// // Disable common DevTools shortcuts to discourage inspection
+// document.addEventListener('keydown', (e) => {
+//     // F12
+//     if (e.keyCode === 123) {
+//         e.preventDefault();
+//         return false;
+//     }
+//     // Ctrl+Shift+I (Inspect), Ctrl+Shift+J (Console), Ctrl+U (View Source)
+//     if (e.ctrlKey && (e.shiftKey && (e.keyCode === 73 || e.keyCode === 74) || e.keyCode === 85)) {
+//         e.preventDefault();
+//         return false;
+//     }
+
+//     // Secret Way: Ctrl + Shift + L
+//     if (e.ctrlKey && e.shiftKey && e.keyCode === 76) {
+//         if (windowAdmin) {
+//             windowAdmin.classList.remove('hidden');
+//             bringToFront(windowAdmin);
+//             showToast("🌸 Developer Access Granted");
+//         }
+//     }
+// });
+
+// Dev Tools Buttons
+document.getElementById('dev-levelup')?.addEventListener('click', () => {
+    socket.emit('level-up', { nickname: user.nickname });
+});
+
+document.getElementById('dev-confetti')?.addEventListener('click', () => {
+    spawnConfetti(200);
+    showToast("🎉 Confetti Force-Spawned");
+});
+
+document.getElementById('dev-reset-bg')?.addEventListener('click', () => {
+    localStorage.removeItem(`serenity_bg_${roomId}`);
+    window.location.reload();
+});
+
+document.getElementById('dev-clear-storage')?.addEventListener('click', () => {
+    showConfirm('Nuke Storage?', 'This will clear all local data and refresh. Are you sure?', () => {
+        localStorage.clear();
+        window.location.href = '/';
+    });
+});
+

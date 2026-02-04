@@ -23,7 +23,8 @@
 
         <!-- Header Left - Room Name -->
         <div class="header-left bouncy" style="display: flex; align-items: center; gap: 10px;">
-            <img src="/assets/logo.png" alt="Logo" style="width: 30px; height: 30px; border-radius: 50%; background-color: #000;">
+            <img src="/assets/logo.png" alt="Logo"
+                style="width: 30px; height: 30px; border-radius: 50%; background-color: #000;">
             <span id="room-name-display">Room Name</span> 🌿
         </div>
 
@@ -215,6 +216,39 @@
                 </div>
                 <button id="close-quiz-results" class="btn-primary" style="margin-top: 20px;">Close 🎉</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Developer Settings Window (Secret) -->
+    <div id="window-admin" class="os-window hidden" style="z-index: 5000; width: 350px;">
+        <div class="window-header" style="background: #333; color: #00ff00;">
+            <div class="window-title"><i class="fa-solid fa-code"></i> Developer Settings</div>
+            <div class="window-controls">
+                <button class="win-btn btn-minimize"><i class="fa-solid fa-minus"></i></button>
+                <button class="win-btn btn-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </div>
+        <div class="window-content" style="background: #1a1a1a; color: #00d4ff; font-family: monospace;">
+            <div class="dev-group" style="margin-bottom: 15px;">
+                <p style="border-bottom: 1px solid #333; padding-bottom: 5px; color: #00ff00;">--- COMMANDS ---</p>
+                <button id="dev-levelup" class="btn-primary"
+                    style="width:100%; margin-top:5px; font-size:0.8rem; background:#444; color:#fff; border:1px solid #555;">🚀
+                    Force Level Up</button>
+                <button id="dev-confetti" class="btn-primary"
+                    style="width:100%; margin-top:5px; font-size:0.8rem; background:#444; color:#fff; border:1px solid #555;">🎉
+                    Test Confetti</button>
+                <button id="dev-reset-bg" class="btn-primary"
+                    style="width:100%; margin-top:5px; font-size:0.8rem; background:#444; color:#fff; border:1px solid #555;">🖼️
+                    Reset Background</button>
+            </div>
+            <div class="dev-group">
+                <p style="border-bottom: 1px solid #333; padding-bottom: 5px; color: #00ff00;">--- TOOLS ---</p>
+                <button id="dev-clear-storage" class="btn-primary"
+                    style="width:100%; margin-top:5px; font-size:0.8rem; background:#800; color:#fff; border:1px solid #555;">💀
+                    Clear LocalStorage</button>
+            </div>
+            <p style="margin-top:15px; font-size:0.7rem; color:#666; text-align:center;">Serenity Studio v2.0 - Admin
+                Access</p>
         </div>
     </div>
 

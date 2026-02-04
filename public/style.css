@@ -1224,6 +1224,7 @@ input[type="text"]:focus {
     align-items: center;
     cursor: grab;
     user-select: none;
+    touch-action: none;
 }
 
 .window-header:active {
@@ -1431,10 +1432,9 @@ input[type="text"]:focus {
     }
 
     .os-window {
-        width: 90% !important;
-        left: 5% !important;
-        right: 5% !important;
-        top: 15% !important;
+        width: 90%;
+        left: 5%;
+        top: 15%;
     }
 
     #window-chat,
