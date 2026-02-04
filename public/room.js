@@ -37,6 +37,12 @@ if (!user || !roomId) {
     window.location.href = '/';
 }
 
+// User State Migration: .png -> .webp
+if (user && user.avatar && user.avatar.endsWith('.png')) {
+    user.avatar = user.avatar.replace('.png', '.webp');
+    localStorage.setItem('serenity_user', JSON.stringify(user));
+}
+
 roomNameDisplay.innerText = roomId;
 
 // Socket Connection & Real-time Events
@@ -140,6 +146,11 @@ socket.on('room-full', () => {
         window.location.href = '/';
     });
 });
+socket.on('room-error', (message) => {
+    showAlert('Room Error', message || 'Invalid room.', () => {
+        window.location.href = '/';
+    });
+});
 
 // --- Timer Logic ---
 socket.on('timer-update', (timerState) => {
@@ -167,6 +178,8 @@ function updateTimerUI(state) {
     // Tiny Timer update
     const formattedTime = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     timerDisplay.innerText = formattedTime;
+    const miniTimer = document.getElementById('mini-timer-display');
+    if (miniTimer) miniTimer.innerText = formattedTime;
 
     // Tiny Persistent Timer
     const tinyTimer = document.getElementById('tiny-timer');
@@ -278,20 +291,20 @@ const STUDENT_DATA = [
 
 // --- AVATAR TO VID MAPPING ---
 const AVATAR_TO_VID = {
-    'calm_nerd.png': 1,
-    'confident_studier.png': 2,
-    'cozy_bookworm.png': 3,
-    'energetic_bestie.png': 4,
-    'energetic_friend.png': 5,
-    'focus_mode.png': 6,
-    'gamer_guy.png': 7,
-    'hoodie_pal.png': 8,
-    'minimal_clean_girl.png': 9,
-    'night_owl.png': 10,
-    'Quiet_topper.png': 11,
-    'soft_aesthetic_girl.png': 12,
-    'soft_smile.png': 13,
-    'sunshine.png': 14
+    'calm_nerd.webp': 1,
+    'confident_studier.webp': 2,
+    'cozy_bookworm.webp': 3,
+    'energetic_bestie.webp': 4,
+    'energetic_friend.webp': 5,
+    'focus_mode.webp': 6,
+    'gamer_guy.webp': 7,
+    'hoodie_pal.webp': 8,
+    'minimal_clean_girl.webp': 9,
+    'night_owl.webp': 10,
+    'Quiet_topper.webp': 11,
+    'soft_aesthetic_girl.webp': 12,
+    'soft_smile.webp': 13,
+    'sunshine.webp': 14
 };
 
 function loadDeskBase() {
@@ -575,12 +588,24 @@ socket.on('quiz-state-gameover', (leaderboard) => {
     leaderboard.forEach((p, i) => {
         const div = document.createElement('div');
         div.className = 'leaderboard-item';
-        div.innerHTML = `
-            <span>#${i + 1}</span>
-            <img src="/avatars/${p.avatar}" alt="${p.nickname}">
-            <span>${p.nickname}</span>
-            <span class="leaderboard-score">${p.score} pts</span>
-        `;
+        const rank = document.createElement('span');
+        rank.textContent = `#${i + 1}`;
+
+        const img = document.createElement('img');
+        img.src = avatarUrl(p?.avatar);
+        img.alt = p?.nickname ? String(p.nickname) : 'Player';
+
+        const name = document.createElement('span');
+        name.textContent = p?.nickname ? String(p.nickname) : 'Player';
+
+        const score = document.createElement('span');
+        score.className = 'leaderboard-score';
+        score.textContent = `${p?.score ?? 0} pts`;
+
+        div.appendChild(rank);
+        div.appendChild(img);
+        div.appendChild(name);
+        div.appendChild(score);
         container.appendChild(div);
     });
 
@@ -635,22 +660,40 @@ socket.on('update-tasks', (tasks) => {
         const li = document.createElement('li');
         li.className = `task-item ${task.completed ? 'completed' : ''}`;
 
-        li.innerHTML = `
-            <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
-            <div class="task-text-content">
-                <span>${escapeHtml(task.text)}</span>
-                <span class="task-author">Added by ${task.author}</span>
-            </div>
-            <button class="delete-task-btn" title="Delete">&times;</button>
-        `;
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'task-checkbox';
+        checkbox.checked = !!task.completed;
+
+        const textContent = document.createElement('div');
+        textContent.className = 'task-text-content';
+
+        const text = document.createElement('span');
+        text.textContent = task?.text ? String(task.text) : '';
+
+        const author = document.createElement('span');
+        author.className = 'task-author';
+        author.textContent = `Added by ${task?.author ? String(task.author) : 'Someone'}`;
+
+        textContent.appendChild(text);
+        textContent.appendChild(author);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-task-btn';
+        deleteBtn.title = 'Delete';
+        deleteBtn.textContent = '×';
+
+        li.appendChild(checkbox);
+        li.appendChild(textContent);
+        li.appendChild(deleteBtn);
 
         // Checkbox listener
-        li.querySelector('.task-checkbox').addEventListener('change', () => {
+        checkbox.addEventListener('change', () => {
             socket.emit('toggle-task', task.id);
         });
 
         // Delete listener
-        li.querySelector('.delete-task-btn').addEventListener('click', () => {
+        deleteBtn.addEventListener('click', () => {
             showConfirm('Delete Task', 'Remove this task?', () => {
                 socket.emit('delete-task', task.id);
             });
@@ -689,10 +732,18 @@ socket.on('task-completed-celebration', (taskText) => {
     toast.style.padding = '1rem 2rem';
     toast.style.textAlign = 'center';
 
-    toast.innerHTML = `
-        <h3 style="margin:0">Yay! Task Complete! 🎉</h3>
-        <p style="margin:5px 0 0 0; opacity:0.8; font-size:0.9rem;">"${escapeHtml(taskText)}"</p>
-    `;
+    const title = document.createElement('h3');
+    title.style.margin = '0';
+    title.textContent = 'Yay! Task Complete! 🎉';
+
+    const message = document.createElement('p');
+    message.style.margin = '5px 0 0 0';
+    message.style.opacity = '0.8';
+    message.style.fontSize = '0.9rem';
+    message.textContent = `"${taskText ? String(taskText) : ''}"`;
+
+    toast.appendChild(title);
+    toast.appendChild(message);
 
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
@@ -832,13 +883,26 @@ socket.on('new-message', (msg) => {
     // 1. Add to Sidebar Chat
     const msgDiv = document.createElement('div');
     msgDiv.className = 'chat-message';
-    msgDiv.innerHTML = `
-        <img src="/avatars/${msg.avatar}" alt="${msg.nickname}">
-        <div class="chat-message-content">
-            <div class="chat-message-header">${msg.nickname}</div>
-            <div class="chat-message-text">${escapeHtml(msg.text)}</div>
-        </div>
-    `;
+
+    const img = document.createElement('img');
+    img.src = avatarUrl(msg?.avatar);
+    img.alt = msg?.nickname ? String(msg.nickname) : 'User';
+
+    const content = document.createElement('div');
+    content.className = 'chat-message-content';
+
+    const header = document.createElement('div');
+    header.className = 'chat-message-header';
+    header.textContent = msg?.nickname ? String(msg.nickname) : 'User';
+
+    const text = document.createElement('div');
+    text.className = 'chat-message-text';
+    text.textContent = msg?.text ? String(msg.text) : '';
+
+    content.appendChild(header);
+    content.appendChild(text);
+    msgDiv.appendChild(img);
+    msgDiv.appendChild(content);
     chatMessages.appendChild(msgDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -908,11 +972,9 @@ socket.on('player-leveled-up', (data) => {
     }
 });
 
-// Helper to escape HTML
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+function avatarUrl(filename) {
+    const safeName = filename ? String(filename) : 'calm_nerd.png';
+    return `/avatars/${encodeURIComponent(safeName)}`;
 }
 
 // --- NOTIFICATION SYSTEM (Modals/Toasts) ---
@@ -926,7 +988,7 @@ const toastContainer = document.getElementById('toast-container');
 function showToast(message, duration = 3000) {
     const toast = document.createElement('div');
     toast.className = 'toast';
-    toast.innerHTML = message;
+    toast.textContent = message;
     toastContainer.appendChild(toast);
 
     setTimeout(() => {

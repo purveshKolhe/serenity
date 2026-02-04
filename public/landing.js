@@ -2,20 +2,20 @@ const socket = io();
 
 // Constants
 const AVATARS = [
-    'Quiet_topper.png',
-    'calm_nerd.png',
-    'confident_studier.png',
-    'cozy_bookworm.png',
-    'energetic_bestie.png',
-    'energetic_friend.png',
-    'focus_mode.png',
-    'gamer_guy.png',
-    'hoodie_pal.png',
-    'minimal_clean_girl.png',
-    'night_owl.png',
-    'soft_aesthetic_girl.png',
-    'soft_smile.png',
-    'sunshine.png'
+    'Quiet_topper.webp',
+    'calm_nerd.webp',
+    'confident_studier.webp',
+    'cozy_bookworm.webp',
+    'energetic_bestie.webp',
+    'energetic_friend.webp',
+    'focus_mode.webp',
+    'gamer_guy.webp',
+    'hoodie_pal.webp',
+    'minimal_clean_girl.webp',
+    'night_owl.webp',
+    'soft_aesthetic_girl.webp',
+    'soft_smile.webp',
+    'sunshine.webp'
 ];
 
 // Elements
@@ -40,7 +40,7 @@ function initAvatars() {
 
         const img = document.createElement('img');
         img.src = `/avatars/${filename}`;
-        img.alt = filename.replace('.png', '').replace(/_/g, ' ');
+        img.alt = filename.replace('.webp', '').replace(/_/g, ' ');
 
         div.appendChild(img);
 

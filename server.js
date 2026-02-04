@@ -13,6 +13,15 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
+const ROOM_ID_MAX_LEN = 64;
+const MAX_NICKNAME_LEN = 24;
+const MAX_AVATAR_LEN = 64;
+const MAX_TASK_LEN = 140;
+const MAX_CHAT_LEN = 400;
+const MAX_TOPIC_LEN = 80;
+const MIN_TIMER_MINUTES = 1;
+const MAX_TIMER_MINUTES = 180;
+
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
@@ -27,7 +36,7 @@ app.get('/api/vids', (req, res) => {
     const vidDir = path.join(__dirname, 'vids');
     fs.readdir(vidDir, (err, files) => {
         if (err) return res.status(500).json([]);
-        const sorted = files.filter(f => /\.(png|gif|webm|mp4)$/i.test(f)).sort();
+        const sorted = files.filter(f => /\.(png|gif|webm|mp4|webp)$/i.test(f)).sort();
         res.json(sorted);
     });
 });
@@ -36,21 +45,31 @@ app.get('/api/avatars', (req, res) => {
     const avatarDir = path.join(__dirname, 'avatars');
     fs.readdir(avatarDir, (err, files) => {
         if (err) return res.status(500).json([]);
-        const sorted = files.filter(f => /\.(png|gif|webm|jpg|jpeg)$/i.test(f)).sort();
+        const sorted = files.filter(f => /\.(png|gif|webm|jpg|jpeg|webp)$/i.test(f)).sort();
         res.json(sorted);
     });
 });
 
 // In-memory room state
-const rooms = {};
+const rooms = new Map();
 
 // Socket.io logic
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
-    socket.on('join-room', ({ roomId, user }) => {
-        if (!rooms[roomId]) {
-            rooms[roomId] = {
+    socket.on('join-room', ({ roomId, user } = {}) => {
+        const safeRoomId = normalizeRoomId(roomId);
+        if (!safeRoomId) {
+            socket.emit('room-error', 'Invalid room. Please check the link.');
+            return;
+        }
+        roomId = safeRoomId;
+
+        const nickname = normalizeText(user?.nickname, MAX_NICKNAME_LEN) || 'Guest';
+        const avatar = normalizeAvatar(user?.avatar, MAX_AVATAR_LEN);
+
+        if (!rooms.has(roomId)) {
+            rooms.set(roomId, {
                 participants: [],
                 timer: {
                     timeLeft: 25 * 60,
@@ -64,10 +83,10 @@ io.on('connection', (socket) => {
                     }
                 },
                 tasks: []
-            };
+            });
         }
 
-        const room = rooms[roomId];
+        const room = rooms.get(roomId);
 
         if (room.participants.length >= 4) {
             socket.emit('room-full');
@@ -76,8 +95,8 @@ io.on('connection', (socket) => {
 
         const participant = {
             id: socket.id,
-            nickname: user.nickname,
-            avatar: user.avatar,
+            nickname,
+            avatar,
             xp: 0,
             level: 1
         };
@@ -89,7 +108,7 @@ io.on('connection', (socket) => {
         socket.emit('timer-update', timerState);
         socket.emit('update-tasks', room.tasks);
 
-        console.log(`${user.nickname} joined room ${roomId}. Total: ${room.participants.length}`);
+        console.log(`${nickname} joined room ${roomId}. Total: ${room.participants.length}`);
 
         // --- TIMER HANDLERS ---
         socket.on('start-timer', () => {
@@ -164,9 +183,9 @@ io.on('connection', (socket) => {
             clearInterval(room.timer.intervalId);
             room.timer.isRunning = false;
             room.timer.durations = {
-                focus: (durations.focus || 25) * 60,
-                'short-break': (durations['short-break'] || 5) * 60,
-                'long-break': (durations['long-break'] || 15) * 60
+                focus: clampInt(durations?.focus, MIN_TIMER_MINUTES, MAX_TIMER_MINUTES, 25) * 60,
+                'short-break': clampInt(durations?.['short-break'], MIN_TIMER_MINUTES, MAX_TIMER_MINUTES, 5) * 60,
+                'long-break': clampInt(durations?.['long-break'], MIN_TIMER_MINUTES, MAX_TIMER_MINUTES, 15) * 60
             };
             room.timer.timeLeft = room.timer.durations[room.timer.mode];
             const { intervalId, ...state } = room.timer;
@@ -175,9 +194,11 @@ io.on('connection', (socket) => {
 
         // --- TASK HANDLERS ---
         socket.on('add-task', (taskText) => {
+            const cleanText = normalizeText(taskText, MAX_TASK_LEN);
+            if (!cleanText) return;
             const newTask = {
                 id: Date.now().toString(),
-                text: taskText,
+                text: cleanText,
                 completed: false,
                 author: room.participants.find(p => p.id === socket.id)?.nickname || 'Someone'
             };
@@ -214,25 +235,31 @@ io.on('connection', (socket) => {
         socket.on('chat-message', (text) => {
             const p = room.participants.find(p => p.id === socket.id);
             if (p) {
+                const cleanText = normalizeText(text, MAX_CHAT_LEN);
+                if (!cleanText) return;
                 io.to(roomId).emit('new-message', {
                     nickname: p.nickname,
                     avatar: p.avatar,
-                    text: text,
+                    text: cleanText,
                     timestamp: Date.now()
                 });
             }
         });
 
         socket.on('send-reaction', (emoji) => {
-            io.to(roomId).emit('new-reaction', { emoji });
+            const cleanEmoji = normalizeText(emoji, 8);
+            if (!cleanEmoji) return;
+            io.to(roomId).emit('new-reaction', { emoji: cleanEmoji });
         });
 
         // --- QUIZ HANDLERS (V2 Robust) ---
         socket.on('start-quiz-v2', async (topic) => {
             if (!process.env.GROQ_API_KEY) return;
+            const cleanTopic = normalizeText(topic, MAX_TOPIC_LEN);
+            if (!cleanTopic) return;
 
             room.quizSession = {
-                topic,
+                topic: cleanTopic,
                 questions: [],
                 currentQuestionIndex: 0,
                 scores: {},
@@ -243,7 +270,7 @@ io.on('connection', (socket) => {
             io.to(roomId).emit('quiz-state-loading');
 
             try {
-                const prompt = `Generate 10 multiple-choice questions about "${topic}". 
+                const prompt = `Generate 10 multiple-choice questions about "${cleanTopic}". 
                 Return a JSON Object with a "questions" key containing an array of objects.
                 Each object must have:
                 - "question": string
@@ -351,7 +378,7 @@ io.on('connection', (socket) => {
                     if (room.quizSession && room.quizSession.timers) {
                         room.quizSession.timers.forEach(t => clearTimeout(t));
                     }
-                    delete rooms[roomId];
+                    rooms.delete(roomId);
                     console.log(`Room ${roomId} deleted.`);
                 }
             }
@@ -375,6 +402,38 @@ function checkLevelUp(participant, roomId, io) {
             newLevel: newLevel
         });
     }
+}
+
+function normalizeRoomId(value) {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (trimmed.length > ROOM_ID_MAX_LEN) return null;
+    return trimmed;
+}
+
+function normalizeText(value, maxLen) {
+    if (typeof value !== 'string') return '';
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+    if (trimmed.length > maxLen) return trimmed.slice(0, maxLen);
+    return trimmed;
+}
+
+function normalizeAvatar(value, maxLen) {
+    if (typeof value !== 'string') return 'calm_nerd.png';
+    const trimmed = value.trim();
+    if (!trimmed) return 'calm_nerd.png';
+    if (trimmed.length > maxLen) return 'calm_nerd.png';
+    if (trimmed.includes('/') || trimmed.includes('\\')) return 'calm_nerd.png';
+    return trimmed;
+}
+
+function clampInt(value, min, max, fallback) {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return fallback;
+    const rounded = Math.round(num);
+    return Math.min(max, Math.max(min, rounded));
 }
 
 server.listen(PORT, () => {
