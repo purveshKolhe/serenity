@@ -92,8 +92,12 @@ exitBtn.addEventListener('click', () => {
 
 const inviteBtn = document.getElementById('invite-btn');
 inviteBtn.addEventListener('click', () => {
-    // navigator.clipboard is cleaner
-    navigator.clipboard.writeText(window.location.href).then(() => {
+    // Determine the base URL (e.g., http://localhost:3000 or https://serenity.com)
+    const baseUrl = window.location.origin;
+    // Create the shareable link with the query parameter
+    const shareUrl = `${baseUrl}/?room=${encodeURIComponent(roomId)}`;
+
+    navigator.clipboard.writeText(shareUrl).then(() => {
         showToast('Link copied! Share the vibes 🌸');
     }).catch(err => {
         console.error('Failed to copy: ', err);

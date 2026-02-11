@@ -80,11 +80,21 @@ nextBtn.addEventListener('click', () => {
     };
     localStorage.setItem('serenity_user', JSON.stringify(userState));
 
-    // Transition to Room Step
-    stepIdentity.style.display = 'none';
-    stepRoom.style.display = 'block';
+    // Check for room in URL or Stored
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomLink = urlParams.get('room');
+    const storedRoom = localStorage.getItem('serenity_room');
 
-    // Check for room in URL maybe? for now just show choices.
+    // Priority: URL Param > Stored > Selection UI
+    if (roomLink) {
+        enterRoom(roomLink);
+    } else if (storedRoom) {
+        enterRoom(storedRoom);
+    } else {
+        // Transition to Room Step
+        stepIdentity.style.display = 'none';
+        stepRoom.style.display = 'block';
+    }
 });
 
 // Event Listeners for Room Step
@@ -122,13 +132,22 @@ createBtn.addEventListener('click', () => {
 // Initialize
 initAvatars();
 
-// Check if user already exists in storage? 
-// The plan says "Identity resets every visit (intentional + casual)", so maybe we AUTO-CLEAR storage on index load?
-// Or we pre-fill? Plan said "Identity resets every visit".
-// "Identity resets every visit (intentional + casual)" line 43 in plan.md
-// So we should NOT pre-fill. Clean slate every time.
+// Check for room link immediately
+const urlParams = new URLSearchParams(window.location.search);
+const roomFromUrl = urlParams.get('room');
+if (roomFromUrl) {
+    // We don't join yet, but we store it so we skip the room selection UI later
+    localStorage.setItem('serenity_room', roomFromUrl);
+    // Optional: Update UI to show we are joining a specific room? 
+    // For now we just keep it silent until they hit "Continue"
+} else {
+    // If no room in URL, clear any stale room from previous sessions
+    localStorage.removeItem('serenity_room');
+}
+
+// Ensure fresh identity BUT keep the room if we just clicked a link
 localStorage.removeItem('serenity_user');
-localStorage.removeItem('serenity_room');
+
 
 // --- SECURITY & DEV MODE ---
 document.addEventListener('contextmenu', (e) => e.preventDefault());
