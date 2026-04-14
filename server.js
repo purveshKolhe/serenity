@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const path = require('path');
 require('dotenv').config();
 const Groq = require('groq-sdk');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -24,31 +25,16 @@ const MAX_TIMER_MINUTES = 180;
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/assets', express.static(path.join(__dirname, 'assets')));
-app.use('/avatars', express.static(path.join(__dirname, 'avatars')));
-app.use('/bgs', express.static(path.join(__dirname, 'bgs')));
+app.use('/assets', express.static(path.join(__dirname, 'assets'))); // Serve local assets first
 
-app.use('/vids', express.static(path.join(__dirname, 'vids')));
-
-// API to list videos sorted alphabetically
-const fs = require('fs');
-app.get('/api/vids', (req, res) => {
-    const vidDir = path.join(__dirname, 'vids');
-    fs.readdir(vidDir, (err, files) => {
-        if (err) return res.status(500).json([]);
-        const sorted = files.filter(f => /\.(png|gif|webm|mp4|webp)$/i.test(f)).sort();
-        res.json(sorted);
+// Setup ImageKit proxy for all media requests not found locally
+if (process.env.IMAGEKIT_URL) {
+    const imagekitProxy = createProxyMiddleware({
+        target: process.env.IMAGEKIT_URL,
+        changeOrigin: true,
     });
-});
-
-app.get('/api/avatars', (req, res) => {
-    const avatarDir = path.join(__dirname, 'avatars');
-    fs.readdir(avatarDir, (err, files) => {
-        if (err) return res.status(500).json([]);
-        const sorted = files.filter(f => /\.(png|gif|webm|jpg|jpeg|webp)$/i.test(f)).sort();
-        res.json(sorted);
-    });
-});
+    app.use(['/avatars', '/bgs', '/mobile_bgs', '/vids', '/assets'], imagekitProxy);
+}
 
 // In-memory room state
 const rooms = new Map();
