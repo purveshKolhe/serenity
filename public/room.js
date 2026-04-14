@@ -452,7 +452,7 @@ function renderDesk(participants) {
         const vidFileName = isSitting ? `${vidNum}s.webm` : `${vidNum}.webm`;
 
         const vid = document.createElement('video');
-        vid.src = `/vids/${vidFileName}?v=2`;
+        vid.src = `/vids/${vidFileName}`;
         vid.className = 'student-video';
         vid.autoplay = true;
         vid.loop = true;
