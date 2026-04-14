@@ -41,13 +41,13 @@ if (process.env.IMAGEKIT_URL) {
             }
         }
     });
-    
+
     app.use((req, res, next) => {
         const p = req.path;
-        if (p.startsWith('/avatars') || 
-            p.startsWith('/bgs') || 
-            p.startsWith('/mobile_bgs') || 
-            p.startsWith('/vids') || 
+        if (p.startsWith('/avatars') ||
+            p.startsWith('/bgs') ||
+            p.startsWith('/mobile_bgs') ||
+            p.startsWith('/vids') ||
             p.startsWith('/assets')) {
             return imagekitProxy(req, res, next);
         }
