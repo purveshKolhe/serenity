@@ -33,7 +33,18 @@ if (process.env.IMAGEKIT_URL) {
         target: process.env.IMAGEKIT_URL,
         changeOrigin: true,
     });
-    app.use(['/avatars', '/bgs', '/mobile_bgs', '/vids', '/assets'], imagekitProxy);
+    
+    app.use((req, res, next) => {
+        const p = req.path;
+        if (p.startsWith('/avatars') || 
+            p.startsWith('/bgs') || 
+            p.startsWith('/mobile_bgs') || 
+            p.startsWith('/vids') || 
+            p.startsWith('/assets')) {
+            return imagekitProxy(req, res, next);
+        }
+        next();
+    });
 }
 
 // In-memory room state
