@@ -32,14 +32,6 @@ if (process.env.IMAGEKIT_URL) {
     const imagekitProxy = createProxyMiddleware({
         target: process.env.IMAGEKIT_URL,
         changeOrigin: true,
-        onProxyReq: (proxyReq, req) => {
-            // Force ImageKit to serve original files for paths where transparency is vital.
-            // This prevents "Automatic format optimization" from stripping alpha channels (rendering as black background).
-            if (req.path.startsWith('/vids') || req.path.startsWith('/avatars')) {
-                const separator = req.url.includes('?') ? '&' : '?';
-                proxyReq.path = `${req.url}${separator}tr=orig-true`;
-            }
-        }
     });
 
     app.use((req, res, next) => {
