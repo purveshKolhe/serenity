@@ -57,9 +57,9 @@ function getBackgroundPath(filename) {
     // Skip if it doesn't exist in mobile_bgs (e.g. ones that failed to generate)
     const mobileAvailable = ['forest.webp', 'hogwarts.webp', 'library.webp', 'stars.webp', 'tech.webp', 'valley.webp'];
     if (isMobile && mobileAvailable.includes(filename)) {
-        return `/mobile_bgs/${filename}`;
+        return `/mobile_bgs/${filename}?v=4`;
     }
-    return `/bgs/${filename}`;
+    return `/bgs/${filename}?v=4`;
 }
 
 // Initial Background Load (Instant)
@@ -153,6 +153,28 @@ socket.on('connect', () => {
 
 socket.on('update-participants', (serverParticipants) => {
     renderDesk(serverParticipants);
+
+    // TIER 3: Contextual Priority Cache (Cache current participants' videos + current background)
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        const priorityUrls = [];
+        
+        // Background
+        const currentBg = getBackgroundPath(localStorage.getItem(`serenity_bg_${roomId}`)?.split('/').pop() || 'forest.webp');
+        priorityUrls.push(currentBg);
+
+        // Participant Videos
+        serverParticipants.forEach((p, idx) => {
+            const vidNum = AVATAR_TO_VID[p.avatar] || 1;
+            const isSitting = idx >= 1; // Basic logic match from renderDesk
+            const vidFileName = isSitting ? `${vidNum}s.webm` : `${vidNum}.webm`;
+            priorityUrls.push(`/vids/${vidFileName}?v=4`);
+        });
+
+        navigator.serviceWorker.controller.postMessage({
+            type: 'CACHE_PRIORITY',
+            urls: priorityUrls
+        });
+    }
 });
 
 socket.on('room-full', () => {
@@ -452,7 +474,7 @@ function renderDesk(participants) {
         const vidFileName = isSitting ? `${vidNum}s.webm` : `${vidNum}.webm`;
 
         const vid = document.createElement('video');
-        vid.src = `/vids/${vidFileName}`;
+        vid.src = `/vids/${vidFileName}?v=4`;
         vid.className = 'student-video';
         vid.autoplay = true;
         vid.loop = true;
@@ -988,7 +1010,7 @@ socket.on('player-leveled-up', (data) => {
 
 function avatarUrl(filename) {
     const safeName = filename ? String(filename) : 'calm_nerd.webp';
-    return `/avatars/${encodeURIComponent(safeName)}`;
+    return `/avatars/${encodeURIComponent(safeName)}?v=4`;
 }
 
 // --- NOTIFICATION SYSTEM (Modals/Toasts) ---
@@ -1073,4 +1095,14 @@ document.getElementById('dev-clear-storage')?.addEventListener('click', () => {
         window.location.href = '/';
     });
 });
+
+// TIER 4: Delayed Background Sync (Rest of the library)
+// Triggers 10 seconds after user enters the room to ensure focus is on the current vibes first.
+setTimeout(() => {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+            type: 'START_BACKGROUND_SYNC'
+        });
+    }
+}, 10000);
 

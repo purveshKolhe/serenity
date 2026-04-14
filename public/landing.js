@@ -39,7 +39,7 @@ function initAvatars() {
         div.dataset.file = filename;
 
         const img = document.createElement('img');
-        img.src = `/avatars/${filename}`;
+        img.src = `/avatars/${filename}?v=4`;
         img.alt = filename.replace('.webp', '').replace(/_/g, ' ');
 
         div.appendChild(img);
@@ -131,6 +131,13 @@ createBtn.addEventListener('click', () => {
 
 // Initialize
 initAvatars();
+
+if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+        type: 'CACHE_PRIORITY',
+        urls: ['/assets/desk.webp?v=4']
+    });
+}
 
 // Check for room link immediately
 const urlParams = new URLSearchParams(window.location.search);
