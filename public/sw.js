@@ -1,4 +1,4 @@
-const CACHE_NAME = 'serenity-cache-v4';
+const CACHE_NAME = 'serenity-cache-v5';
 
 const AVATARS = [
     'Quiet_topper.webp', 'calm_nerd.webp', 'confident_studier.webp', 'cozy_bookworm.webp',
@@ -17,24 +17,24 @@ const TIER_1_ASSETS = [
     '/style.css',
     '/landing.js',
     '/room.js',
-    '/assets/logo.webp?v=4',
-    '/assets/fav.webp?v=4'
+    '/assets/logo.webp?v=5',
+    '/assets/fav.webp?v=5'
 ];
-AVATARS.forEach(av => TIER_1_ASSETS.push(`/avatars/${av}?v=4`));
+AVATARS.forEach(av => TIER_1_ASSETS.push(`/avatars/${av}?v=5`));
 
 // ALL ASSETS (for background sync)
 const ALL_ASSETS = [
     ...TIER_1_ASSETS,
-    '/assets/desk.webp?v=4',
-    '/assets/notif.mp3?v=4'
+    '/assets/desk.webp?v=5',
+    '/assets/notif.mp3?v=5'
 ];
 BACKGROUNDS.forEach(bg => {
-    ALL_ASSETS.push(`/bgs/${bg}?v=4`);
-    ALL_ASSETS.push(`/mobile_bgs/${bg}?v=4`);
+    ALL_ASSETS.push(`/bgs/${bg}?v=5`);
+    ALL_ASSETS.push(`/mobile_bgs/${bg}?v=5`);
 });
 for (let i = 1; i <= 14; i++) {
-    ALL_ASSETS.push(`/vids/${i}.webm?v=4`);
-    ALL_ASSETS.push(`/vids/${i}s.webm?v=4`);
+    ALL_ASSETS.push(`/vids/${i}.webm?v=5`);
+    ALL_ASSETS.push(`/vids/${i}s.webm?v=5`);
 }
 
 self.addEventListener('install', event => {
