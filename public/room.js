@@ -1037,25 +1037,11 @@ function showConfirm(title, message, onConfirm) {
     modalCancelBtn.classList.remove('hidden');
     modalOverlay.classList.remove('hidden');
 }
+
 // --- SECURITY & DEV MODE ---
 const windowAdmin = document.getElementById('window-admin');
-
-// Disable Right Click (Context Menu)
-document.addEventListener('contextmenu', (e) => e.preventDefault());
-
-// Disable common DevTools shortcuts to discourage inspection
+// DevTools and Right-click are now enabled as requested.
 document.addEventListener('keydown', (e) => {
-    // F12
-    if (e.keyCode === 123) {
-        e.preventDefault();
-        return false;
-    }
-    // Ctrl+Shift+I (Inspect), Ctrl+Shift+J (Console), Ctrl+U (View Source)
-    if (e.ctrlKey && (e.shiftKey && (e.keyCode === 73 || e.keyCode === 74) || e.keyCode === 85)) {
-        e.preventDefault();
-        return false;
-    }
-
     // Secret Way: Ctrl + Shift + L
     if (e.ctrlKey && e.shiftKey && e.keyCode === 76) {
         if (windowAdmin) {
