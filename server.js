@@ -421,11 +421,11 @@ function normalizeText(value, maxLen) {
 }
 
 function normalizeAvatar(value, maxLen) {
-    if (typeof value !== 'string') return 'calm_nerd.png';
+    if (typeof value !== 'string') return 'calm_nerd.webp';
     const trimmed = value.trim();
-    if (!trimmed) return 'calm_nerd.png';
-    if (trimmed.length > maxLen) return 'calm_nerd.png';
-    if (trimmed.includes('/') || trimmed.includes('\\')) return 'calm_nerd.png';
+    if (!trimmed) return 'calm_nerd.webp';
+    if (trimmed.length > maxLen) return 'calm_nerd.webp';
+    if (trimmed.includes('/') || trimmed.includes('\\')) return 'calm_nerd.webp';
     return trimmed;
 }
 

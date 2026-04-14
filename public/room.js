@@ -423,7 +423,7 @@ function renderDesk(participants) {
     deskEl.style.transform = `translate(-50%, -50%) scale(${DESK_DATA.scale})`;
 
     const deskImg = document.createElement('img');
-    deskImg.src = '/assets/desk.png';
+    deskImg.src = '/assets/desk.webp';
     deskImg.className = 'desk-img';
     deskEl.appendChild(deskImg);
     deskStage.appendChild(deskEl);
@@ -987,7 +987,7 @@ socket.on('player-leveled-up', (data) => {
 });
 
 function avatarUrl(filename) {
-    const safeName = filename ? String(filename) : 'calm_nerd.png';
+    const safeName = filename ? String(filename) : 'calm_nerd.webp';
     return `/avatars/${encodeURIComponent(safeName)}`;
 }
 
