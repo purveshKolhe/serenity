@@ -1,4 +1,4 @@
-const CACHE_NAME = 'serenity-cache-v7';
+const CACHE_NAME = 'serenity-cache-v8';
 
 const AVATARS = [
     'Quiet_topper.webp', 'calm_nerd.webp', 'confident_studier.webp', 'cozy_bookworm.webp',
@@ -17,24 +17,24 @@ const TIER_1_ASSETS = [
     '/style.css',
     '/landing.js',
     '/room.js',
-    '/assets/logo.webp?v=7',
-    '/assets/fav.webp?v=7'
+    '/assets/logo.webp?v=8',
+    '/assets/fav.webp?v=8'
 ];
-AVATARS.forEach(av => TIER_1_ASSETS.push(`/avatars/${av}?v=7`));
+AVATARS.forEach(av => TIER_1_ASSETS.push(`/avatars/${av}?v=8`));
 
 // ALL ASSETS (for background sync)
 const ALL_ASSETS = [
     ...TIER_1_ASSETS,
-    '/assets/desk.webp?v=7',
-    '/assets/notif.mp3?v=7'
+    '/assets/desk.webp?v=8',
+    '/assets/notif.mp3?v=8'
 ];
 BACKGROUNDS.forEach(bg => {
-    ALL_ASSETS.push(`/bgs/${bg}?v=7`);
-    ALL_ASSETS.push(`/mobile_bgs/${bg}?v=7`);
+    ALL_ASSETS.push(`/bgs/${bg}?v=8`);
+    ALL_ASSETS.push(`/mobile_bgs/${bg}?v=8`);
 });
 for (let i = 1; i <= 14; i++) {
-    ALL_ASSETS.push(`/vids/${i}.webm?v=7`);
-    ALL_ASSETS.push(`/vids/${i}s.webm?v=7`);
+    ALL_ASSETS.push(`/vids/${i}.webm?v=8`);
+    ALL_ASSETS.push(`/vids/${i}s.webm?v=8`);
 }
 
 self.addEventListener('install', event => {
@@ -62,7 +62,7 @@ self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET') return;
     
     event.respondWith(
-        caches.match(event.request, { ignoreSearch: false }).then(async cachedResponse => {
+        caches.match(event.request, { ignoreSearch: true }).then(async cachedResponse => {
             if (cachedResponse) {
                 // If it's a Range request, we MUST return a 206 for video/audio elements to work in Chrome/Safari
                 if (event.request.headers.has('Range')) {
@@ -89,12 +89,22 @@ self.addEventListener('fetch', event => {
             }
             
             return fetch(event.request).then(networkResponse => {
+                const url = new URL(event.request.url);
+                const isMedia = ['/avatars', '/bgs', '/mobile_bgs', '/vids', '/assets'].some(path => url.pathname.startsWith(path));
+
                 if (networkResponse && networkResponse.status === 200) {
-                    const url = new URL(event.request.url);
-                    // Dynamically cache any requested media if not already in cache
-                    if (['/avatars', '/bgs', '/mobile_bgs', '/vids', '/assets'].some(path => url.pathname.startsWith(path))) {
+                    if (isMedia) {
                         const responseToCache = networkResponse.clone();
                         caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
+                    }
+                } else if (networkResponse && networkResponse.status === 206) {
+                    if (isMedia) {
+                        // Range request returned 206. Fetch full 200 in background to cache it.
+                        fetch(event.request.url).then(fullResponse => {
+                            if (fullResponse.status === 200) {
+                                caches.open(CACHE_NAME).then(cache => cache.put(event.request.url, fullResponse));
+                            }
+                        });
                     }
                 }
                 return networkResponse;
@@ -110,7 +120,7 @@ self.addEventListener('message', event => {
         console.log('[SW] Priority Caching:', urls);
         caches.open(CACHE_NAME).then(cache => {
             urls.forEach(async (url) => {
-                const exists = await cache.match(url);
+                const exists = await cache.match(url, { ignoreSearch: true });
                 if (!exists) {
                     cache.add(url).catch(e => console.warn(`Priority fail: ${url}`, e));
                 }
@@ -124,7 +134,7 @@ self.addEventListener('message', event => {
             // Sequential background caching to not choke the connection
             (async () => {
                 for (const url of ALL_ASSETS) {
-                    const exists = await caches.match(url);
+                    const exists = await caches.match(url, { ignoreSearch: true });
                     if (!exists) {
                         try {
                             await cache.add(url);
