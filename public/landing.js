@@ -39,7 +39,7 @@ function initAvatars() {
         div.dataset.file = filename;
 
         const img = document.createElement('img');
-        img.src = `/avatars/${filename}?v=5`;
+        img.src = `/avatars/${filename}?v=7`;
         img.alt = filename.replace('.webp', '').replace(/_/g, ' ');
 
         div.appendChild(img);
@@ -135,7 +135,7 @@ initAvatars();
 if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
     navigator.serviceWorker.controller.postMessage({
         type: 'CACHE_PRIORITY',
-        urls: ['/assets/desk.webp?v=5']
+        urls: ['/assets/desk.webp?v=7']
     });
 }
 

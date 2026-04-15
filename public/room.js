@@ -57,9 +57,9 @@ function getBackgroundPath(filename) {
     // Skip if it doesn't exist in mobile_bgs (e.g. ones that failed to generate)
     const mobileAvailable = ['forest.webp', 'hogwarts.webp', 'library.webp', 'stars.webp', 'tech.webp', 'valley.webp'];
     if (isMobile && mobileAvailable.includes(filename)) {
-        return `/mobile_bgs/${filename}?v=5`;
+        return `/mobile_bgs/${filename}?v=7`;
     }
-    return `/bgs/${filename}?v=5`;
+    return `/bgs/${filename}?v=7`;
 }
 
 // Initial Background Load (Instant)
@@ -167,7 +167,7 @@ socket.on('update-participants', (serverParticipants) => {
             const vidNum = AVATAR_TO_VID[p.avatar] || 1;
             const isSitting = idx >= 1; // Basic logic match from renderDesk
             const vidFileName = isSitting ? `${vidNum}s.webm` : `${vidNum}.webm`;
-            priorityUrls.push(`/vids/${vidFileName}?v=5`);
+            priorityUrls.push(`/vids/${vidFileName}?v=7`);
         });
 
         navigator.serviceWorker.controller.postMessage({
@@ -447,7 +447,7 @@ function renderDesk(participants) {
     deskEl.style.transform = `translate(-50%, -50%) scale(${deskScale})`;
 
     const deskImg = document.createElement('img');
-    deskImg.src = '/assets/desk.webp?v=5';
+    deskImg.src = '/assets/desk.webp?v=7';
     deskImg.className = 'desk-img';
     deskEl.appendChild(deskImg);
     deskStage.appendChild(deskEl);
@@ -476,7 +476,7 @@ function renderDesk(participants) {
         const vidFileName = isSitting ? `${vidNum}s.webm` : `${vidNum}.webm`;
 
         const vid = document.createElement('video');
-        vid.src = `/vids/${vidFileName}?v=5`;
+        vid.src = `/vids/${vidFileName}?v=7`;
         vid.className = 'student-video';
         vid.autoplay = true;
         vid.loop = true;
@@ -1012,7 +1012,7 @@ socket.on('player-leveled-up', (data) => {
 
 function avatarUrl(filename) {
     const safeName = filename ? String(filename) : 'calm_nerd.webp';
-    return `/avatars/${encodeURIComponent(safeName)}?v=5`;
+    return `/avatars/${encodeURIComponent(safeName)}?v=7`;
 }
 
 // --- NOTIFICATION SYSTEM (Modals/Toasts) ---

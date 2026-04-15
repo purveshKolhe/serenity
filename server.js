@@ -32,6 +32,11 @@ if (process.env.IMAGEKIT_URL) {
     const imagekitProxy = createProxyMiddleware({
         target: process.env.IMAGEKIT_URL,
         changeOrigin: true,
+        onProxyRes: (proxyRes, req, res) => {
+            // Add long-lived caching headers for all proxied assets
+            proxyRes.headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+            proxyRes.headers['X-Proxy-Cached'] = 'true';
+        }
     });
 
     app.use((req, res, next) => {

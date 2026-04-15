@@ -1,4 +1,4 @@
-const CACHE_NAME = 'serenity-cache-v5';
+const CACHE_NAME = 'serenity-cache-v7';
 
 const AVATARS = [
     'Quiet_topper.webp', 'calm_nerd.webp', 'confident_studier.webp', 'cozy_bookworm.webp',
@@ -17,24 +17,24 @@ const TIER_1_ASSETS = [
     '/style.css',
     '/landing.js',
     '/room.js',
-    '/assets/logo.webp?v=5',
-    '/assets/fav.webp?v=5'
+    '/assets/logo.webp?v=7',
+    '/assets/fav.webp?v=7'
 ];
-AVATARS.forEach(av => TIER_1_ASSETS.push(`/avatars/${av}?v=5`));
+AVATARS.forEach(av => TIER_1_ASSETS.push(`/avatars/${av}?v=7`));
 
 // ALL ASSETS (for background sync)
 const ALL_ASSETS = [
     ...TIER_1_ASSETS,
-    '/assets/desk.webp?v=5',
-    '/assets/notif.mp3?v=5'
+    '/assets/desk.webp?v=7',
+    '/assets/notif.mp3?v=7'
 ];
 BACKGROUNDS.forEach(bg => {
-    ALL_ASSETS.push(`/bgs/${bg}?v=5`);
-    ALL_ASSETS.push(`/mobile_bgs/${bg}?v=5`);
+    ALL_ASSETS.push(`/bgs/${bg}?v=7`);
+    ALL_ASSETS.push(`/mobile_bgs/${bg}?v=7`);
 });
 for (let i = 1; i <= 14; i++) {
-    ALL_ASSETS.push(`/vids/${i}.webm?v=5`);
-    ALL_ASSETS.push(`/vids/${i}s.webm?v=5`);
+    ALL_ASSETS.push(`/vids/${i}.webm?v=7`);
+    ALL_ASSETS.push(`/vids/${i}s.webm?v=7`);
 }
 
 self.addEventListener('install', event => {
@@ -62,8 +62,31 @@ self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET') return;
     
     event.respondWith(
-        caches.match(event.request).then(cachedResponse => {
-            if (cachedResponse) return cachedResponse;
+        caches.match(event.request, { ignoreSearch: false }).then(async cachedResponse => {
+            if (cachedResponse) {
+                // If it's a Range request, we MUST return a 206 for video/audio elements to work in Chrome/Safari
+                if (event.request.headers.has('Range')) {
+                    const rangeHeader = event.request.headers.get('Range');
+                    const blob = await cachedResponse.blob();
+                    const size = blob.size;
+                    const parts = rangeHeader.replace(/bytes=/, "").split("-");
+                    const start = parseInt(parts[0], 10);
+                    const end = parts[1] ? parseInt(parts[1], 10) : size - 1;
+                    const chunk = blob.slice(start, end + 1);
+                    
+                    const responseHeaders = new Headers(cachedResponse.headers);
+                    responseHeaders.set('Content-Range', `bytes ${start}-${end}/${size}`);
+                    responseHeaders.set('Content-Length', chunk.size);
+                    responseHeaders.set('Accept-Ranges', 'bytes');
+
+                    return new Response(chunk, {
+                        status: 206,
+                        statusText: 'Partial Content',
+                        headers: responseHeaders
+                    });
+                }
+                return cachedResponse;
+            }
             
             return fetch(event.request).then(networkResponse => {
                 if (networkResponse && networkResponse.status === 200) {
@@ -86,7 +109,12 @@ self.addEventListener('message', event => {
         const urls = event.data.urls;
         console.log('[SW] Priority Caching:', urls);
         caches.open(CACHE_NAME).then(cache => {
-            urls.forEach(url => cache.add(url).catch(e => console.warn(`Priority fail: ${url}`, e)));
+            urls.forEach(async (url) => {
+                const exists = await cache.match(url);
+                if (!exists) {
+                    cache.add(url).catch(e => console.warn(`Priority fail: ${url}`, e));
+                }
+            });
         });
     }
 
