@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Serenity Room</title>
-    <link rel="icon" type="image/webp" href="/assets/fav.webp">
-    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/webp" href="/assets/fav.webp?v=10">
+    <link rel="stylesheet" href="style.css?v=10">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,7 +23,7 @@
 
         <!-- Header Left - Room Name -->
         <div class="header-left bouncy" style="display: flex; align-items: center; gap: 10px;">
-            <img src="/assets/logo.webp?v=8" alt="Logo"
+            <img src="/assets/logo.webp?v=10" alt="Logo"
                 style="width: 30px; height: 30px; border-radius: 50%; background-color: #000;">
             <span id="room-name-display">Room Name</span> 🌿
         </div>
@@ -273,7 +273,7 @@
     <div id="toast-container"></div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script src="room.js"></script>
+    <script src="room.js?v=10"></script>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {

@@ -1,4 +1,5 @@
-const CACHE_NAME = 'serenity-cache-v8';
+const SHELL_CACHE_NAME = 'serenity-shell-v10';
+const MEDIA_CACHE_NAME = 'serenity-media-v8';
 
 const AVATARS = [
     'Quiet_topper.webp', 'calm_nerd.webp', 'confident_studier.webp', 'cozy_bookworm.webp',
@@ -9,50 +10,64 @@ const AVATARS = [
 
 const BACKGROUNDS = ['forest.webp', 'hogwarts.webp', 'library.webp', 'stars.webp', 'tech.webp', 'valley.webp'];
 
-// TIER 1: Essential for the first impression (Core UI + Avatars)
-const TIER_1_ASSETS = [
+// SHELL: Core UI, CSS, JS. Updates often so it's bumped to v10.
+const SHELL_ASSETS = [
     '/',
-    '/index.html',
-    '/room.html',
-    '/style.css',
-    '/landing.js',
-    '/room.js',
-    '/assets/logo.webp?v=8',
-    '/assets/fav.webp?v=8'
+    '/index.html?v=10',
+    '/room.html?v=10',
+    '/style.css?v=10',
+    '/landing.js?v=10',
+    '/room.js?v=10',
+    '/assets/logo.webp?v=10',
+    '/assets/fav.webp?v=10'
 ];
-AVATARS.forEach(av => TIER_1_ASSETS.push(`/avatars/${av}?v=8`));
 
-// ALL ASSETS (for background sync)
-const ALL_ASSETS = [
-    ...TIER_1_ASSETS,
+// MEDIA: Heavy assets like videos, avatars, backgrounds. Rarely changing so they stay at v8.
+const MEDIA_ASSETS = [
     '/assets/desk.webp?v=8',
     '/assets/notif.mp3?v=8'
 ];
+AVATARS.forEach(av => MEDIA_ASSETS.push(`/avatars/${av}?v=8`));
 BACKGROUNDS.forEach(bg => {
-    ALL_ASSETS.push(`/bgs/${bg}?v=8`);
-    ALL_ASSETS.push(`/mobile_bgs/${bg}?v=8`);
+    MEDIA_ASSETS.push(`/bgs/${bg}?v=8`);
+    MEDIA_ASSETS.push(`/mobile_bgs/${bg}?v=8`);
 });
 for (let i = 1; i <= 14; i++) {
-    ALL_ASSETS.push(`/vids/${i}.webm?v=8`);
-    ALL_ASSETS.push(`/vids/${i}s.webm?v=8`);
+    MEDIA_ASSETS.push(`/vids/${i}.webm?v=8`);
+    MEDIA_ASSETS.push(`/vids/${i}s.webm?v=8`);
 }
 
 self.addEventListener('install', event => {
     self.skipWaiting();
     event.waitUntil(
-        caches.open(CACHE_NAME).then(cache => {
-            console.log('[SW] Caching Tier 1 Assets (Core + Avatars)');
-            return Promise.all(
-                TIER_1_ASSETS.map(url => cache.add(url).catch(e => console.warn(`Failed Tier 1: ${url}`, e)))
-            );
-        })
+        Promise.all([
+            caches.open(SHELL_CACHE_NAME).then(cache => {
+                console.log('[SW] Caching Shell Assets');
+                return cache.addAll(SHELL_ASSETS);
+            })
+            // We do not eagerly cache all media on install anymore to save bandwidth.
+            // It will be lazily loaded via background sync.
+        ])
     );
 });
 
 self.addEventListener('activate', event => {
     event.waitUntil(
         caches.keys().then(keys => Promise.all(
-            keys.map(key => key !== CACHE_NAME ? caches.delete(key) : null)
+            keys.map(key => {
+                // Delete old shell caches
+                if (key.startsWith('serenity-shell-') && key !== SHELL_CACHE_NAME) {
+                    return caches.delete(key);
+                }
+                // Delete old media caches
+                if (key.startsWith('serenity-media-') && key !== MEDIA_CACHE_NAME) {
+                    return caches.delete(key);
+                }
+                // Cleanup legacy unified caches
+                if (key.startsWith('serenity-cache-')) {
+                    return caches.delete(key);
+                }
+            })
         ))
     );
     return self.clients.claim();
@@ -61,22 +76,28 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET') return;
     
+    // EXPLICITLY ignore socket.io requests to prevent polling loop collapse!
+    if (event.request.url.includes('/socket.io/')) return;
+    
     event.respondWith(
         caches.match(event.request, { ignoreSearch: true }).then(async cachedResponse => {
             if (cachedResponse) {
-                // If it's a Range request, we MUST return a 206 for video/audio elements to work in Chrome/Safari
+                // Handle Range Requests for Videos (Safari/Chrome require 206 responses to allow seeking)
                 if (event.request.headers.has('Range')) {
                     const rangeHeader = event.request.headers.get('Range');
                     const blob = await cachedResponse.blob();
                     const size = blob.size;
+                    
                     const parts = rangeHeader.replace(/bytes=/, "").split("-");
                     const start = parseInt(parts[0], 10);
                     const end = parts[1] ? parseInt(parts[1], 10) : size - 1;
+                    
+                    // Slice the full cached blob to create the requested partial response.
                     const chunk = blob.slice(start, end + 1);
                     
                     const responseHeaders = new Headers(cachedResponse.headers);
                     responseHeaders.set('Content-Range', `bytes ${start}-${end}/${size}`);
-                    responseHeaders.set('Content-Length', chunk.size);
+                    responseHeaders.set('Content-Length', chunk.size.toString());
                     responseHeaders.set('Accept-Ranges', 'bytes');
 
                     return new Response(chunk, {
@@ -88,24 +109,18 @@ self.addEventListener('fetch', event => {
                 return cachedResponse;
             }
             
+            // Uncached request flow
             return fetch(event.request).then(networkResponse => {
-                const url = new URL(event.request.url);
-                const isMedia = ['/avatars', '/bgs', '/mobile_bgs', '/vids', '/assets'].some(path => url.pathname.startsWith(path));
-
-                if (networkResponse && networkResponse.status === 200) {
-                    if (isMedia) {
-                        const responseToCache = networkResponse.clone();
-                        caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
-                    }
-                } else if (networkResponse && networkResponse.status === 206) {
-                    if (isMedia) {
-                        // Range request returned 206. Fetch full 200 in background to cache it.
-                        fetch(event.request.url).then(fullResponse => {
-                            if (fullResponse.status === 200) {
-                                caches.open(CACHE_NAME).then(cache => cache.put(event.request.url, fullResponse));
-                            }
-                        });
-                    }
+                // Only dynamically cache standard 200 OK responses!
+                // Caching a 206 response corrupts the cache because we'd try to blob.slice() a partial chunk later.
+                if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+                    const url = new URL(event.request.url);
+                    const isMedia = ['/avatars', '/bgs', '/mobile_bgs', '/vids', '/assets'].some(path => url.pathname.startsWith(path));
+                    
+                    const cacheName = isMedia ? MEDIA_CACHE_NAME : SHELL_CACHE_NAME;
+                    const responseToCache = networkResponse.clone();
+                    
+                    caches.open(cacheName).then(cache => cache.put(event.request, responseToCache));
                 }
                 return networkResponse;
             });
@@ -113,39 +128,44 @@ self.addEventListener('fetch', event => {
     );
 });
 
-// Priority Caching System
+// Priority & Background Sync
 self.addEventListener('message', event => {
     if (event.data.type === 'CACHE_PRIORITY') {
         const urls = event.data.urls;
-        console.log('[SW] Priority Caching:', urls);
-        caches.open(CACHE_NAME).then(cache => {
-            urls.forEach(async (url) => {
+        urls.forEach(async (url) => {
+            const isMedia = url.includes('/vids/') || url.includes('/bgs/') || url.includes('/mobile_bgs/') || url.includes('/avatars/') || url.includes('desk.webp') || url.includes('notif.mp3');
+            const cacheName = isMedia ? MEDIA_CACHE_NAME : SHELL_CACHE_NAME;
+            
+            caches.open(cacheName).then(async cache => {
                 const exists = await cache.match(url, { ignoreSearch: true });
                 if (!exists) {
-                    cache.add(url).catch(e => console.warn(`Priority fail: ${url}`, e));
+                    try {
+                        // cache.add fetches the full response without Range headers, securing a 200 response
+                        await cache.add(url);
+                    } catch (e) {
+                        console.warn(`Priority fail: ${url}`, e);
+                    }
                 }
             });
         });
     }
 
     if (event.data.type === 'START_BACKGROUND_SYNC') {
-        console.log('[SW] Starting Background Sync of all remaining assets...');
-        caches.open(CACHE_NAME).then(cache => {
-            // Sequential background caching to not choke the connection
+        caches.open(MEDIA_CACHE_NAME).then(cache => {
+            // Process sync sequentially to avoid flooding the network
             (async () => {
-                for (const url of ALL_ASSETS) {
-                    const exists = await caches.match(url, { ignoreSearch: true });
+                for (const url of MEDIA_ASSETS) {
+                    const exists = await cache.match(url, { ignoreSearch: true });
                     if (!exists) {
                         try {
                             await cache.add(url);
-                            // Tiny delay to be polite
+                            // Brief polite delay
                             await new Promise(r => setTimeout(r, 200));
                         } catch (e) {
                             console.warn(`Background fail: ${url}`);
                         }
                     }
                 }
-                console.log('[SW] Background Sync Complete.');
             })();
         });
     }
