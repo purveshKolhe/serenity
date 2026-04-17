@@ -23,6 +23,38 @@ const modeBtns = document.querySelectorAll('.mode-btn');
 const notifSound = document.getElementById('notif-sound');
 if (notifSound) notifSound.volume = 0.4; // 80% of 0.5
 
+// === PSYCHOLOGICAL LOADER ===
+const loadingTexts = [
+    "Waking up the desk...",
+    "Brewing coffee...",
+    "Arranging chairs...",
+    "Setting the mood...",
+    "Almost ready...",
+    "Connecting..."
+];
+let loadProgress = 0;
+const progressEl = document.getElementById('loading-progress');
+const textEl = document.getElementById('loading-text');
+let loadInterval;
+
+if (progressEl && textEl) {
+    loadInterval = setInterval(() => {
+        if (loadProgress >= 90) {
+            clearInterval(loadInterval);
+            return;
+        }
+        // Randomly bump progress 2% - 15%
+        loadProgress += (Math.random() * 13) + 2; 
+        if (loadProgress > 90) loadProgress = 90;
+        progressEl.style.width = `${loadProgress}%`;
+        
+        // Randomly change text
+        if (Math.random() > 0.4) {
+            textEl.innerText = loadingTexts[Math.floor(Math.random() * loadingTexts.length)];
+        }
+    }, 300); // Fast ticks to feel responsive
+}
+
 // === WINDOW MANAGER GLOBALS (must be defined early) ===
 let highestZ = 2000;
 
@@ -140,7 +172,34 @@ function setDynamicBackground(roomName) {
         img.onload = () => {
             roomLayout.style.backgroundImage = `url('${bgUrl}')`;
             localStorage.setItem(`serenity_bg_${roomName}`, bgUrl);
+            hideLoadingOverlay();
         };
+    } else {
+        const bgUrlOverride = localStorage.getItem(`serenity_bg_${roomName}`);
+        const img = new Image();
+        img.src = bgUrlOverride;
+        img.onload = () => {
+             hideLoadingOverlay();
+        };
+       roomLayout.style.backgroundImage = `url('${bgUrlOverride}')`;
+    }
+}
+
+function hideLoadingOverlay() {
+    const overlay = document.getElementById('loading-overlay');
+    const loadingProgress = document.getElementById('loading-progress');
+    const textEl = document.getElementById('loading-text');
+
+    if (typeof loadInterval !== 'undefined') clearInterval(loadInterval);
+
+    if (overlay) {
+        if(loadingProgress) loadingProgress.style.width = '100%';
+        if(textEl) textEl.innerText = "Done! ✨";
+
+        setTimeout(() => {
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.remove(), 300);
+        }, 400); // Short delay to let user see "100% Done"
     }
 }
 
