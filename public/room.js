@@ -502,7 +502,7 @@ function renderDesk(participants) {
     deskEl.style.left = `${DESK_DATA.x * DESK_STAGE.baseWidth}px`;
     deskEl.style.top = `${DESK_DATA.y * DESK_STAGE.baseHeight}px`;
     const isDesktop = window.innerWidth >= DESK_STAGE.desktopMinWidth;
-    const deskScale = isDesktop ? DESK_DATA.scale * 1.1 : DESK_DATA.scale;
+    const deskScale = isDesktop ? DESK_DATA.scale * 1 : DESK_DATA.scale;
     deskEl.style.transform = `translate(-50%, -50%) scale(${deskScale})`;
 
     const deskImg = document.createElement('img');

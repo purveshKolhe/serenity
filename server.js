@@ -260,6 +260,11 @@ io.on('connection', (socket) => {
             const cleanTopic = normalizeText(topic, MAX_TOPIC_LEN);
             if (!cleanTopic) return;
 
+            // FIX: Clear any existing timers from a previous or ongoing quiz
+            if (room.quizSession && room.quizSession.timers) {
+                room.quizSession.timers.forEach(t => clearTimeout(t));
+            }
+
             room.quizSession = {
                 topic: cleanTopic,
                 questions: [],
