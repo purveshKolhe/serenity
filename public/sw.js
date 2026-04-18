@@ -13,13 +13,13 @@ const BACKGROUNDS = ['forest.webp', 'hogwarts.webp', 'library.webp', 'stars.webp
 // SHELL: Core UI, CSS, JS. Updates often so it's bumped to v10.
 const SHELL_ASSETS = [
     '/',
-    '/index.html?v=10',
-    '/room.html?v=10',
-    '/style.css?v=10',
-    '/landing.js?v=10',
-    '/room.js?v=10',
-    '/assets/logo.webp?v=10',
-    '/assets/fav.webp?v=10'
+    '/index.html?v=11',
+    '/room.html?v=11',
+    '/style.css?v=11',
+    '/landing.js?v=11',
+    '/room.js?v=11',
+    '/assets/logo.webp?v=11',
+    '/assets/fav.webp?v=11'
 ];
 
 // MEDIA: Heavy assets like videos, avatars, backgrounds. Rarely changing so they stay at v8.
