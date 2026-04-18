@@ -79,8 +79,30 @@ self.addEventListener('fetch', event => {
     // EXPLICITLY ignore socket.io requests to prevent polling loop collapse!
     if (event.request.url.includes('/socket.io/')) return;
     
+    const url = new URL(event.request.url);
+    const isMedia = ['/avatars', '/bgs', '/mobile_bgs', '/vids', '/assets'].some(path => url.pathname.startsWith(path));
+    
+    // NETWORK-FIRST for HTML pages so we always get the latest code pointers
+    if (event.request.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('.html')) {
+        event.respondWith(
+            fetch(event.request).then(networkResponse => {
+                if (networkResponse && networkResponse.status === 200) {
+                    const responseToCache = networkResponse.clone();
+                    caches.open(SHELL_CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
+                }
+                return networkResponse;
+            }).catch(() => caches.match(event.request, { ignoreSearch: true }))
+        );
+        return;
+    }
+
+    // CACHE-FIRST for everything else
+    // For media, ignore the query string so ?v=8 always hits the media bucket
+    // For shell code (CSS, JS), DO NOT ignore search. style.css?v=11 must miss the v10 cache.
+    const matchOptions = isMedia ? { ignoreSearch: true } : { ignoreSearch: false };
+
     event.respondWith(
-        caches.match(event.request, { ignoreSearch: true }).then(async cachedResponse => {
+        caches.match(event.request, matchOptions).then(async cachedResponse => {
             if (cachedResponse) {
                 // Handle Range Requests for Videos (Safari/Chrome require 206 responses to allow seeking)
                 if (event.request.headers.has('Range')) {
@@ -112,14 +134,9 @@ self.addEventListener('fetch', event => {
             // Uncached request flow
             return fetch(event.request).then(networkResponse => {
                 // Only dynamically cache standard 200 OK responses!
-                // Caching a 206 response corrupts the cache because we'd try to blob.slice() a partial chunk later.
                 if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-                    const url = new URL(event.request.url);
-                    const isMedia = ['/avatars', '/bgs', '/mobile_bgs', '/vids', '/assets'].some(path => url.pathname.startsWith(path));
-                    
                     const cacheName = isMedia ? MEDIA_CACHE_NAME : SHELL_CACHE_NAME;
                     const responseToCache = networkResponse.clone();
-                    
                     caches.open(cacheName).then(cache => cache.put(event.request, responseToCache));
                 }
                 return networkResponse;
