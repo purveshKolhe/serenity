@@ -27,10 +27,10 @@ const MAX_TIMER_MINUTES = 180;
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/assets', express.static(path.join(__dirname, 'assets'))); // Serve local assets first
 
-// Setup ImageKit proxy for all media requests not found locally
-if (process.env.IMAGEKIT_URL) {
-    const imagekitProxy = createProxyMiddleware({
-        target: process.env.IMAGEKIT_URL,
+// Setup Cloudflare R2 proxy for all media requests not found locally
+if (process.env.CLOUDFLARE_R2_URL) {
+    const r2Proxy = createProxyMiddleware({
+        target: process.env.CLOUDFLARE_R2_URL,
         changeOrigin: true,
         onProxyRes: (proxyRes, req, res) => {
             // Add long-lived caching headers for all proxied assets
@@ -46,7 +46,7 @@ if (process.env.IMAGEKIT_URL) {
             p.startsWith('/mobile_bgs') ||
             p.startsWith('/vids') ||
             p.startsWith('/assets')) {
-            return imagekitProxy(req, res, next);
+            return r2Proxy(req, res, next);
         }
         next();
     });
