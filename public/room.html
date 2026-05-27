@@ -36,16 +36,16 @@
                 style="width: 30px; height: 30px; border-radius: 50%; background-color: #000;">
             <span id="room-name-display">Room Name</span> 🌿
         </div>
-
         <!-- Header Right - Buttons -->
         <div class="header-right bouncy">
             <button class="control-btn" id="invite-btn" title="Invite Friends"><i
                     class="fa-solid fa-user-plus"></i></button>
             <button class="control-btn" id="theme-btn" title="Change Background"><i
                     class="fa-solid fa-image"></i></button>
+            <button class="control-btn" id="donate-btn" title="Support Serenity 💖"><i
+                    class="fa-solid fa-heart" style="color: #ff4b5c;"></i></button>
             <button class="control-btn" id="exit-btn" title="Leave"><i class="fa-solid fa-door-open"></i></button>
         </div>
-
         <!-- Pomodoro Timer (Centered in Window Area) -->
         <div id="pomodoro-display" class="pomodoro-center">
             <span id="tiny-timer">25:00</span>
@@ -166,7 +166,6 @@
             </div>
         </div>
     </div>
-
     <!-- Quiz Setup Overlay (Replaces God Mode) -->
     <div id="quiz-setup-overlay" class="overlay hidden">
         <div class="glass-panel modal-panel bouncy" style="max-width: 400px;">
@@ -184,6 +183,41 @@
         </div>
     </div>
 
+    <!-- Donation/Support Overlay -->
+    <div id="donation-overlay" class="overlay hidden">
+        <div class="glass-panel modal-panel bouncy" style="max-width: 420px; padding: 25px;">
+            <button id="close-donation" class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+            <h2 style="font-family: var(--font-primary); color: var(--primary-dark); font-size: 1.8rem; margin-bottom: 5px;">Support Serenity 💖</h2>
+            <p style="text-align: center; font-size: 0.95rem; opacity: 0.85; margin-bottom: 20px;">
+                Help us keep the servers running and brewing focus 24/7!
+            </p>
+
+            <div class="donation-options" style="display: flex; flex-direction: column; gap: 15px; width: 100%;">
+                <!-- UPI Option -->
+                <div class="donation-card" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                    <div style="font-size: 1.1rem; font-weight: bold; color: var(--primary-dark); display: flex; align-items: center; gap: 8px;">
+                        🇮🇳 Pay via UPI
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,0.05); padding: 8px 12px; border-radius: 8px; width: 100%; box-sizing: border-box;">
+                        <span id="upi-id-text" style="font-family: monospace; font-size: 0.95rem; flex-grow: 1; word-break: break-all;">purveshkolhe27@okaxis</span>
+                        <button id="copy-upi-btn" class="btn" style="padding: 5px 10px; font-size: 0.8rem; background: var(--primary); color: white; border-radius: 6px;" title="Copy UPI ID">
+                            <i class="fa-regular fa-copy"></i> Copy
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Ko-fi Option -->
+                <div class="donation-card" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                    <div style="font-size: 1.1rem; font-weight: bold; color: var(--primary-dark); display: flex; align-items: center; gap: 8px;">
+                        🌐 Pay Internationally
+                    </div>
+                    <a href="https://ko-fi.com/serenity" target="_blank" id="kofi-link" class="btn-primary" style="width: 100%; text-align: center; text-decoration: none; padding: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box;">
+                        ☕ Support on Ko-fi
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Quiz Window -->
     <div id="window-quiz" class="os-window hidden">
         <div class="window-header">

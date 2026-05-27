@@ -1,4 +1,4 @@
-﻿/* Global "Funny/Cute" Tweaks */
+/* Global "Funny/Cute" Tweaks */
 @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@400;500;600;700&display=swap');
 
 :root {
@@ -1480,4 +1480,50 @@ input[type="text"]:focus {
     .pomodoro-center #tiny-timer {
         font-size: 2.5rem;
     }
+}
+
+/* --- DONATION MODAL --- */
+#donation-overlay .modal-panel {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 3px solid #222 !important;
+    box-shadow: 8px 8px 0px rgba(0, 0, 0, 0.8) !important;
+    border-radius: 12px;
+}
+
+#donation-overlay .donation-card {
+    background: #fafafa !important;
+    border: 2px solid #eee !important;
+    border-radius: 12px;
+    padding: 15px;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+#donation-overlay .donation-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary) !important;
+}
+
+#donation-overlay .btn-primary {
+    background: #2e7d32;
+    border: 2px solid #222;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 0.1s, background-color 0.2s;
+    box-shadow: 3px 3px 0px #222;
+}
+
+#donation-overlay .btn-primary:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0px #222;
+}
+
+#donate-btn i {
+    transition: transform 0.3s ease;
+}
+
+#donate-btn:hover i {
+    transform: scale(1.3);
 }

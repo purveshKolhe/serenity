@@ -1157,6 +1157,44 @@ document.getElementById('dev-clear-storage')?.addEventListener('click', () => {
     });
 });
 
+// --- DONATION MODAL LOGIC ---
+const donateBtn = document.getElementById('donate-btn');
+const donationOverlay = document.getElementById('donation-overlay');
+const closeDonationBtn = document.getElementById('close-donation');
+const copyUpiBtn = document.getElementById('copy-upi-btn');
+const upiIdText = document.getElementById('upi-id-text');
+
+if (donateBtn && donationOverlay) {
+    donateBtn.addEventListener('click', () => {
+        donationOverlay.classList.remove('hidden');
+    });
+}
+
+if (closeDonationBtn && donationOverlay) {
+    closeDonationBtn.addEventListener('click', () => {
+        donationOverlay.classList.add('hidden');
+    });
+}
+
+if (donationOverlay) {
+    donationOverlay.addEventListener('click', (e) => {
+        if (e.target === donationOverlay) {
+            donationOverlay.classList.add('hidden');
+        }
+    });
+}
+
+if (copyUpiBtn && upiIdText) {
+    copyUpiBtn.addEventListener('click', () => {
+        const upiId = upiIdText.innerText.trim();
+        navigator.clipboard.writeText(upiId).then(() => {
+            showToast('UPI ID copied to clipboard! 📋');
+        }).catch(() => {
+            showToast('Failed to copy UPI ID. Please copy manually.');
+        });
+    });
+}
+
 // TIER 4: Delayed Background Sync (Rest of the library)
 // Triggers 10 seconds after user enters the room to ensure focus is on the current vibes first.
 setTimeout(() => {
