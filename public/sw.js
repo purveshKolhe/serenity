@@ -1,5 +1,5 @@
-const SHELL_CACHE_NAME = 'serenity-shell-v12';
-const MEDIA_CACHE_NAME = 'serenity-media-v9';
+const SHELL_CACHE_NAME = 'serenity-shell-v13';
+const MEDIA_CACHE_NAME = 'serenity-media-v10';
 
 const AVATARS = [
     'Quiet_topper.webp', 'calm_nerd.webp', 'confident_studier.webp', 'cozy_bookworm.webp',
