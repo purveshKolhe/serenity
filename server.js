@@ -424,6 +424,7 @@ function normalizeRoomId(value) {
     const trimmed = value.trim();
     if (!trimmed) return null;
     if (trimmed.length > ROOM_ID_MAX_LEN) return null;
+    if (!/^[a-zA-Z0-9_\-]+$/.test(trimmed)) return null;
     return trimmed;
 }
 

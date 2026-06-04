@@ -100,7 +100,8 @@ nextBtn.addEventListener('click', () => {
 // Event Listeners for Room Step
 roomIdInput.addEventListener('input', () => {
     const val = roomIdInput.value.trim();
-    if (val.length > 0) {
+    const isValid = /^[a-zA-Z0-9_\-]+$/.test(val);
+    if (val.length > 0 && isValid) {
         enterBtn.removeAttribute('disabled');
     } else {
         enterBtn.setAttribute('disabled', 'true');

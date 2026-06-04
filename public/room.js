@@ -1009,7 +1009,7 @@ socket.on('new-message', (msg) => {
 
 function showChatBubble(nickname, text) {
     // Find the student element
-    const studentEl = document.querySelector(`.composited-element[data-nickname="${nickname}"]`);
+    const studentEl = document.querySelector(`.composited-element[data-nickname="${CSS.escape(nickname)}"]`);
     if (!studentEl) return;
 
     // Remove existing bubble if any

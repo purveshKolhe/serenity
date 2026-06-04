@@ -10,7 +10,7 @@ const AVATARS = [
 
 const BACKGROUNDS = ['forest.webp', 'hogwarts.webp', 'library.webp', 'stars.webp', 'tech.webp', 'valley.webp'];
 
-// SHELL: Core UI, CSS, JS. Updates often so it's bumped to v10.
+// SHELL: Core UI, CSS, JS.
 const SHELL_ASSETS = [
     '/',
     '/index.html?v=12',
@@ -22,7 +22,7 @@ const SHELL_ASSETS = [
     '/assets/fav.webp?v=12'
 ];
 
-// MEDIA: Heavy assets like videos, avatars, backgrounds. Rarely changing so they stay at v8.
+// MEDIA: Heavy assets like videos, avatars, backgrounds.
 const MEDIA_ASSETS = [
     '/assets/desk.webp?v=12',
     '/assets/notif.mp3?v=12'
@@ -40,14 +40,18 @@ for (let i = 1; i <= 14; i++) {
 self.addEventListener('install', event => {
     self.skipWaiting();
     event.waitUntil(
-        Promise.all([
-            caches.open(SHELL_CACHE_NAME).then(cache => {
-                console.log('[SW] Caching Shell Assets');
-                return cache.addAll(SHELL_ASSETS);
-            })
-            // We do not eagerly cache all media on install anymore to save bandwidth.
-            // It will be lazily loaded via background sync.
-        ])
+        caches.open(SHELL_CACHE_NAME).then(async cache => {
+            console.log('[SW] Caching Shell Assets');
+            await Promise.all(
+                SHELL_ASSETS.map(async asset => {
+                    try {
+                        await cache.add(asset);
+                    } catch (error) {
+                        console.warn(`[SW] Failed to cache shell asset: ${asset}`, error);
+                    }
+                })
+            );
+        })
     );
 });
 
@@ -97,9 +101,8 @@ self.addEventListener('fetch', event => {
     }
 
     // CACHE-FIRST for everything else
-    // For media, ignore the query string so ?v=12 always hits the media bucket
-    // For shell code (CSS, JS), DO NOT ignore search. style.css?v=12 must miss the v10 cache.
-    const matchOptions = isMedia ? { ignoreSearch: true } : { ignoreSearch: false };
+    // Do not ignore search parameters so that versioned URLs (e.g. ?v=12) cache-bust correctly.
+    const matchOptions = { ignoreSearch: false };
 
     event.respondWith(
         caches.match(event.request, matchOptions).then(async cachedResponse => {
@@ -154,7 +157,7 @@ self.addEventListener('message', event => {
             const cacheName = isMedia ? MEDIA_CACHE_NAME : SHELL_CACHE_NAME;
             
             caches.open(cacheName).then(async cache => {
-                const exists = await cache.match(url, { ignoreSearch: true });
+                const exists = await cache.match(url, { ignoreSearch: false });
                 if (!exists) {
                     try {
                         // cache.add fetches the full response without Range headers, securing a 200 response
@@ -172,7 +175,7 @@ self.addEventListener('message', event => {
             // Process sync sequentially to avoid flooding the network
             (async () => {
                 for (const url of MEDIA_ASSETS) {
-                    const exists = await cache.match(url, { ignoreSearch: true });
+                    const exists = await cache.match(url, { ignoreSearch: false });
                     if (!exists) {
                         try {
                             await cache.add(url);
