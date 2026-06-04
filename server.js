@@ -24,7 +24,15 @@ const MIN_TIMER_MINUTES = 1;
 const MAX_TIMER_MINUTES = 180;
 
 // Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('index.html') || filePath.endsWith('room.html')) {
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
+    }
+}));
 app.use('/assets', express.static(path.join(__dirname, 'assets'))); // Serve local assets first
 
 // Setup Cloudflare R2 proxy for all media requests not found locally

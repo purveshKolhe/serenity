@@ -85,7 +85,7 @@ self.addEventListener('fetch', event => {
     // NETWORK-FIRST for HTML pages so we always get the latest code pointers
     if (event.request.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('.html')) {
         event.respondWith(
-            fetch(event.request).then(networkResponse => {
+            fetch(event.request, { cache: 'no-store' }).then(networkResponse => {
                 if (networkResponse && networkResponse.status === 200) {
                     const responseToCache = networkResponse.clone();
                     caches.open(SHELL_CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
