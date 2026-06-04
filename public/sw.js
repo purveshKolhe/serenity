@@ -1,5 +1,5 @@
-const SHELL_CACHE_NAME = 'serenity-shell-v13';
-const MEDIA_CACHE_NAME = 'serenity-media-v10';
+const SHELL_CACHE_NAME = 'serenity-shell-v14';
+const MEDIA_CACHE_NAME = 'serenity-media-v11';
 
 const AVATARS = [
     'Quiet_topper.webp', 'calm_nerd.webp', 'confident_studier.webp', 'cozy_bookworm.webp',
@@ -13,28 +13,28 @@ const BACKGROUNDS = ['forest.webp', 'hogwarts.webp', 'library.webp', 'stars.webp
 // SHELL: Core UI, CSS, JS. Updates often so it's bumped to v10.
 const SHELL_ASSETS = [
     '/',
-    '/index.html?v=11',
-    '/room.html?v=11',
-    '/style.css?v=11',
-    '/landing.js?v=11',
-    '/room.js?v=11',
-    '/assets/logo.webp?v=11',
-    '/assets/fav.webp?v=11'
+    '/index.html?v=12',
+    '/room.html?v=12',
+    '/style.css?v=12',
+    '/landing.js?v=12',
+    '/room.js?v=12',
+    '/assets/logo.webp?v=12',
+    '/assets/fav.webp?v=12'
 ];
 
 // MEDIA: Heavy assets like videos, avatars, backgrounds. Rarely changing so they stay at v8.
 const MEDIA_ASSETS = [
-    '/assets/desk.webp?v=8',
-    '/assets/notif.mp3?v=8'
+    '/assets/desk.webp?v=12',
+    '/assets/notif.mp3?v=12'
 ];
-AVATARS.forEach(av => MEDIA_ASSETS.push(`/avatars/${av}?v=8`));
+AVATARS.forEach(av => MEDIA_ASSETS.push(`/avatars/${av}?v=12`));
 BACKGROUNDS.forEach(bg => {
-    MEDIA_ASSETS.push(`/bgs/${bg}?v=8`);
-    MEDIA_ASSETS.push(`/mobile_bgs/${bg}?v=8`);
+    MEDIA_ASSETS.push(`/bgs/${bg}?v=12`);
+    MEDIA_ASSETS.push(`/mobile_bgs/${bg}?v=12`);
 });
 for (let i = 1; i <= 14; i++) {
-    MEDIA_ASSETS.push(`/vids/${i}.webm?v=8`);
-    MEDIA_ASSETS.push(`/vids/${i}s.webm?v=8`);
+    MEDIA_ASSETS.push(`/vids/${i}.webm?v=12`);
+    MEDIA_ASSETS.push(`/vids/${i}s.webm?v=12`);
 }
 
 self.addEventListener('install', event => {
@@ -97,8 +97,8 @@ self.addEventListener('fetch', event => {
     }
 
     // CACHE-FIRST for everything else
-    // For media, ignore the query string so ?v=8 always hits the media bucket
-    // For shell code (CSS, JS), DO NOT ignore search. style.css?v=11 must miss the v10 cache.
+    // For media, ignore the query string so ?v=12 always hits the media bucket
+    // For shell code (CSS, JS), DO NOT ignore search. style.css?v=12 must miss the v10 cache.
     const matchOptions = isMedia ? { ignoreSearch: true } : { ignoreSearch: false };
 
     event.respondWith(

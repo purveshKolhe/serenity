@@ -4,9 +4,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- One-Time Cache Flush for v12 -->
+    <script>
+    (function(){
+      var FLUSH_VERSION = "serenity-flush-v12";
+      if(localStorage.getItem("serenity_flush_flag") === FLUSH_VERSION) return;
+      (async function(){
+        if("serviceWorker" in navigator){
+          try{ var regs = await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(function(r){ return r.unregister(); })); } catch(e){}
+        }
+        if("caches" in window){
+          try{ var names = await caches.keys(); await Promise.all(names.map(function(name){ return caches.delete(name); })); } catch(e){}
+        }
+        localStorage.clear();
+        sessionStorage.clear();
+        localStorage.setItem("serenity_flush_flag", FLUSH_VERSION);
+        window.location.reload();
+      })();
+    })();
+    </script>
     <title>Serenity</title>
-    <link rel="icon" type="image/webp" href="/assets/fav.webp?v=11">
-    <link rel="stylesheet" href="style.css?v=11">
+    <link rel="icon" type="image/webp" href="/assets/fav.webp?v=12">
+    <link rel="stylesheet" href="style.css?v=12">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,7 +37,7 @@
 <body>
 
     <div class="glass-panel">
-        <img src="/assets/logo.webp?v=11" alt="Serenity Logo" style="width: 120px; margin-bottom: 20px;">
+        <img src="/assets/logo.webp?v=12" alt="Serenity Logo" style="width: 120px; margin-bottom: 20px;">
         <h1>Welcome to Serenity 🌸</h1>
         <p class="subtitle">Your cozy corner for productive vibes.</p>
 
@@ -55,7 +74,7 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script src="landing.js?v=11"></script>
+    <script src="landing.js?v=12"></script>
     <script>
       if ('serviceWorker' in navigator) {
         let refreshing = false;

@@ -89,9 +89,9 @@ function getBackgroundPath(filename) {
     // Skip if it doesn't exist in mobile_bgs (e.g. ones that failed to generate)
     const mobileAvailable = ['forest.webp', 'hogwarts.webp', 'library.webp', 'stars.webp', 'tech.webp', 'valley.webp'];
     if (isMobile && mobileAvailable.includes(filename)) {
-        return `/mobile_bgs/${filename}?v=8`;
+        return `/mobile_bgs/${filename}?v=12`;
     }
-    return `/bgs/${filename}?v=8`;
+    return `/bgs/${filename}?v=12`;
 }
 
 // Initial Background Load (Instant)
@@ -226,7 +226,7 @@ socket.on('update-participants', (serverParticipants) => {
             const vidNum = AVATAR_TO_VID[p.avatar] || 1;
             const isSitting = idx >= 1; // Basic logic match from renderDesk
             const vidFileName = isSitting ? `${vidNum}s.webm` : `${vidNum}.webm`;
-            priorityUrls.push(`/vids/${vidFileName}?v=8`);
+            priorityUrls.push(`/vids/${vidFileName}?v=12`);
         });
 
         navigator.serviceWorker.controller.postMessage({
@@ -506,7 +506,7 @@ function renderDesk(participants) {
     deskEl.style.transform = `translate(-50%, -50%) scale(${deskScale})`;
 
     const deskImg = document.createElement('img');
-    deskImg.src = '/assets/desk.webp?v=8';
+    deskImg.src = '/assets/desk.webp?v=12';
     deskImg.className = 'desk-img';
     deskEl.appendChild(deskImg);
     deskStage.appendChild(deskEl);
@@ -535,7 +535,7 @@ function renderDesk(participants) {
         const vidFileName = isSitting ? `${vidNum}s.webm` : `${vidNum}.webm`;
 
         const vid = document.createElement('video');
-        vid.src = `/vids/${vidFileName}?v=8`;
+        vid.src = `/vids/${vidFileName}?v=12`;
         vid.className = 'student-video';
         vid.autoplay = true;
         vid.loop = true;
@@ -803,7 +803,7 @@ socket.on('update-tasks', (tasks) => {
 // Celebration
 socket.on('task-completed-celebration', (taskText) => {
     // Play happy sound
-    const audio = new Audio('/assets/notif.mp3?v=8');
+    const audio = new Audio('/assets/notif.mp3?v=12');
     audio.play().catch(() => { });
 
     // Confetti explosion
@@ -1071,7 +1071,7 @@ socket.on('player-leveled-up', (data) => {
 
 function avatarUrl(filename) {
     const safeName = filename ? String(filename) : 'calm_nerd.webp';
-    return `/avatars/${encodeURIComponent(safeName)}?v=8`;
+    return `/avatars/${encodeURIComponent(safeName)}?v=12`;
 }
 
 // --- NOTIFICATION SYSTEM (Modals/Toasts) ---
